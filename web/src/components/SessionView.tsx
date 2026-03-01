@@ -282,7 +282,10 @@ export default function SessionView() {
                   <Match when={item.kind === 'user' && item as DisplayItem & { kind: 'user' }}>
                     {(i) => (
                       <div class={`${styles.message} ${styles.user}`}>
-                        <div class={styles['role-label']}>User</div>
+                        <div class={styles.meta}>
+                          <span class={styles['role-label']}>User</span>
+                          <A class={styles.uuid} href={`/session/${params.id}/raw?uuid=${i().msg.uuid}`}>{i().msg.uuid.slice(0, 8)}</A>
+                        </div>
                         <div
                           class={`${styles.content} ${styles.prose}`}
                           innerHTML={
@@ -309,6 +312,7 @@ export default function SessionView() {
                         <div class={`${styles.message} ${styles.assistant}`}>
                           <div class={styles.meta}>
                             <span class={styles['role-label']}>Assistant</span>
+                            <A class={styles.uuid} href={`/session/${params.id}/raw?uuid=${msg.uuid}`}>{msg.uuid.slice(0, 8)}</A>
                             <Show when={msg.assistantContent?.model}>
                               {(m) => <span class={styles.model}>{m()}</span>}
                             </Show>

@@ -56,3 +56,10 @@
 .highlighted-json :global(code) {
   font-family: monospace;
 }
+
+.highlight-line {
+  background: color-mix(in srgb, #a08860 25%, transparent) !important;
+  display: inline-block;
+  width: 100%;
+  border-radius: 2px;
+}

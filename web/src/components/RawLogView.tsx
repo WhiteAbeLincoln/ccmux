@@ -1,5 +1,5 @@
-import { createResource, Show, Switch, Match } from 'solid-js'
-import { useParams, useNavigate } from '@solidjs/router'
+import { createResource, createEffect, Show, Switch, Match } from 'solid-js'
+import { useParams, useNavigate, useSearchParams } from '@solidjs/router'
 import { query } from '../lib/graphql'
 import type { Session } from '../lib/types'
 import styles from './RawLogView.module.css'
@@ -15,6 +15,9 @@ const SESSION_INFO_QUERY = `query ($id: String!) {
 export default function RawLogView() {
   const params = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams<{ uuid?: string }>()
+
+  let containerRef: HTMLDivElement | undefined
 
   const [data] = createResource(
     () => params.id,
@@ -27,8 +30,21 @@ export default function RawLogView() {
       const rawContent = rawData.sessionRawLog
       const filePath = infoData.sessionInfo?.filePath ?? null
       let highlightedHtml = ''
+      let targetLine: number | null = null
 
       if (rawContent) {
+        // Find the line containing the target UUID
+        const targetUuid = searchParams.uuid
+        if (targetUuid) {
+          const lines = rawContent.split('\n')
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes(targetUuid)) {
+              targetLine = i
+              break
+            }
+          }
+        }
+
         const { createHighlighter } = await import('shiki')
         const highlighter = await createHighlighter({
           langs: ['jsonl'],
@@ -40,9 +56,24 @@ export default function RawLogView() {
         })
       }
 
-      return { rawContent, filePath, highlightedHtml }
+      return { rawContent, filePath, highlightedHtml, targetLine }
     },
   )
+
+  // Scroll to target line after render
+  createEffect(() => {
+    const d = data()
+    if (!d || d.targetLine === null || !containerRef) return
+    // Wait a tick for innerHTML to be applied
+    requestAnimationFrame(() => {
+      const lines = containerRef!.querySelectorAll('.line')
+      const target = lines[d.targetLine!]
+      if (target) {
+        target.classList.add(styles['highlight-line'])
+        target.scrollIntoView({ block: 'center' })
+      }
+    })
+  })
 
   function download() {
     const content = data()?.rawContent
@@ -85,7 +116,9 @@ export default function RawLogView() {
           <p class={styles.status}>Empty log file.</p>
         </Match>
         <Match when={data()?.highlightedHtml}>
-          {(html) => <div class={styles['highlighted-json']} innerHTML={html()} />}
+          {(html) => (
+            <div ref={containerRef} class={styles['highlighted-json']} innerHTML={html()} />
+          )}
         </Match>
       </Switch>
     </div>
