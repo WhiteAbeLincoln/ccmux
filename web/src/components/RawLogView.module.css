@@ -1,0 +1,58 @@
+.raw-log-view {
+  max-width: none;
+
+  & header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  & header h1 {
+    font-size: 1.2rem;
+    font-family: monospace;
+    flex: 1;
+  }
+
+  & header button {
+    padding: 0.3rem 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+.download-btn {
+  white-space: nowrap;
+}
+
+.file-path {
+  font-family: monospace;
+  font-size: 0.8rem;
+  opacity: 0.5;
+  margin-bottom: 1rem;
+  word-break: break-all;
+}
+
+.status {
+  opacity: 0.5;
+}
+
+.error {
+  color: #e55;
+}
+
+.highlighted-json {
+  overflow-x: auto;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.highlighted-json :global(pre) {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, currentColor 3%, transparent) !important;
+}
+
+.highlighted-json :global(code) {
+  font-family: monospace;
+}

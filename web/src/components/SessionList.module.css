@@ -1,0 +1,126 @@
+.session-list {
+  max-width: 960px;
+  margin: 0 auto;
+
+  & h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  & table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-left: 1rem;
+    width: calc(100% - 1rem);
+  }
+
+  & th {
+    text-align: left;
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+    font-size: 0.75rem;
+    opacity: 0.45;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  & td {
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 8%, transparent);
+  }
+}
+
+.status {
+  color: color-mix(in srgb, currentColor 50%, transparent);
+}
+
+.error {
+  color: #e55;
+}
+
+.project-group {
+  margin-bottom: 0.5rem;
+}
+
+.group-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem;
+  background: color-mix(in srgb, currentColor 4%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.group-header:hover {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  border-color: color-mix(in srgb, currentColor 25%, transparent);
+}
+
+.caret {
+  font-size: 0.75rem;
+  width: 1em;
+}
+
+.group-name {
+  font-family: monospace;
+  font-size: 0.85rem;
+  flex: 1;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.group-name:hover {
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
+.group-count {
+  font-size: 0.75rem;
+  opacity: 0.5;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.th-summary {
+  width: 100%;
+}
+
+.th-msgs,
+.th-date {
+  white-space: nowrap;
+}
+
+.session-row {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.session-row:hover {
+  background-color: color-mix(in srgb, currentColor 6%, transparent);
+}
+
+.summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0;
+  width: 100%;
+}
+
+.count {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.date {
+  font-size: 0.85rem;
+  opacity: 0.55;
+  white-space: nowrap;
+}

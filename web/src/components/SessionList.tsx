@@ -1,0 +1,137 @@
+import { createResource, createSignal, createMemo, For, Show, Switch, Match } from 'solid-js'
+import { useNavigate } from '@solidjs/router'
+import { query } from '../lib/graphql'
+import type { Session } from '../lib/types'
+import styles from './SessionList.module.css'
+
+interface ProjectGroup {
+  project: string
+  displayName: string
+  sessions: Session[]
+}
+
+const SESSIONS_QUERY = `{
+  sessions {
+    id project slug createdAt updatedAt messageCount firstMessage projectPath
+  }
+}`
+
+export default function SessionList() {
+  const navigate = useNavigate()
+
+  const [sessions] = createResource(async () => {
+    const data = await query<{ sessions: Session[] }>(SESSIONS_QUERY)
+    return data.sessions
+  })
+
+  const groups = createMemo<ProjectGroup[]>(() => {
+    const list = sessions() ?? []
+    const map = new Map<string, Session[]>()
+    for (const s of list) {
+      let arr = map.get(s.project)
+      if (!arr) {
+        arr = []
+        map.set(s.project, arr)
+      }
+      arr.push(s)
+    }
+    const result: ProjectGroup[] = []
+    for (const [project, projectSessions] of map) {
+      const displayName = projectSessions[0]?.projectPath ?? project
+      result.push({ project, displayName, sessions: projectSessions })
+    }
+    result.sort((a, b) => {
+      const aMax = a.sessions[0]?.updatedAt ?? ''
+      const bMax = b.sessions[0]?.updatedAt ?? ''
+      return bMax.localeCompare(aMax)
+    })
+    return result
+  })
+
+  const [collapsed, setCollapsed] = createSignal(new Set<string>())
+
+  function toggleGroup(project: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev)
+      if (next.has(project)) next.delete(project)
+      else next.add(project)
+      return next
+    })
+  }
+
+  function formatDate(iso: string | null): string {
+    if (!iso) return ''
+    return new Date(iso).toLocaleString()
+  }
+
+  return (
+    <div class={styles['session-list']}>
+      <h1>Sessions</h1>
+      <Switch>
+        <Match when={sessions.loading}>
+          <p class={styles.status}>Loading sessions...</p>
+        </Match>
+        <Match when={sessions.error}>
+          <p class={`${styles.status} ${styles.error}`}>
+            Error: {(sessions.error as Error).message}
+          </p>
+        </Match>
+        <Match when={sessions()?.length === 0}>
+          <p class={styles.status}>No sessions found.</p>
+        </Match>
+        <Match when={true}>
+          <For each={groups()}>
+            {(group) => (
+              <div class={styles['project-group']}>
+                <button class={styles['group-header']} onClick={() => toggleGroup(group.project)}>
+                  <span class={styles.caret}>
+                    {collapsed().has(group.project) ? '\u25B8' : '\u25BE'}
+                  </span>
+                  {group.displayName.startsWith('/') ? (
+                    <a
+                      class={styles['group-name']}
+                      href={`file://${group.displayName}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {group.displayName}
+                    </a>
+                  ) : (
+                    <span class={styles['group-name']}>{group.displayName}</span>
+                  )}
+                  <span class={styles['group-count']}>{group.sessions.length}</span>
+                </button>
+                <Show when={!collapsed().has(group.project)}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th class={styles['th-summary']}>Summary</th>
+                        <th class={styles['th-msgs']}>Msgs</th>
+                        <th class={styles['th-date']}>Updated</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <For each={group.sessions}>
+                        {(session) => (
+                          <tr
+                            class={styles['session-row']}
+                            onClick={() => navigate(`/session/${session.id}`)}
+                          >
+                            <td class={styles.summary}>
+                              {session.firstMessage ?? session.slug ?? '\u2014'}
+                            </td>
+                            <td class={styles.count}>{session.messageCount}</td>
+                            <td class={styles.date}>{formatDate(session.updatedAt)}</td>
+                          </tr>
+                        )}
+                      </For>
+                    </tbody>
+                  </table>
+                </Show>
+              </div>
+            )}
+          </For>
+        </Match>
+      </Switch>
+    </div>
+  )
+}
