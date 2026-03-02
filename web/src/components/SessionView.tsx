@@ -1,5 +1,5 @@
 import { createSignal, createResource, createMemo, For, Show, Switch, Match } from 'solid-js'
-import { useParams, useNavigate, A } from '@solidjs/router'
+import { useParams, A } from '@solidjs/router'
 import { query } from '../lib/graphql'
 import { marked } from 'marked'
 import { truncate } from '../lib/format'
@@ -64,7 +64,6 @@ type DisplayItem =
 
 export default function SessionView() {
   const params = useParams<{ id: string }>()
-  const navigate = useNavigate()
 
   interface SessionInfoData {
     id: string
@@ -231,10 +230,10 @@ export default function SessionView() {
     <div class={styles['session-view']}>
       <header>
         <Show when={sessionInfo()?.isSidechain && sessionInfo()?.parentSessionId}>
-          <button onClick={() => navigate(`/session/${sessionInfo()!.parentSessionId}`)}>&larr; Parent</button>
+          <A class={styles['back-link']} href={`/session/${sessionInfo()!.parentSessionId}`}>&larr; Parent</A>
         </Show>
         <Show when={!sessionInfo()?.isSidechain}>
-          <button onClick={() => navigate('/')}>&larr; Back</button>
+          <A class={styles['back-link']} href="/">&larr; Back</A>
         </Show>
         <h1>
           <A class={styles['session-link']} href={`/session/${params.id}/raw`}>

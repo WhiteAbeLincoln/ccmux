@@ -6,7 +6,7 @@ import {
   For,
 
 } from 'solid-js'
-import { useParams, useNavigate, useSearchParams } from '@solidjs/router'
+import { useParams, useSearchParams, A } from '@solidjs/router'
 import { createVirtualizer } from '@tanstack/solid-virtual'
 import { query } from '../lib/graphql'
 import { JsonTree } from '../lib/json-tree'
@@ -81,7 +81,6 @@ function formatTimestamp(ts: string): string {
 
 export default function RawLogView() {
   const params = useParams<{ id: string }>()
-  const navigate = useNavigate()
   const [searchParams] = useSearchParams<{ uuid?: string }>()
 
   let scrollRef!: HTMLDivElement
@@ -283,9 +282,9 @@ export default function RawLogView() {
   return (
     <div class={styles['raw-log-view']}>
       <header>
-        <button onClick={() => navigate(`/session/${params.id}`)}>
+        <A class={styles['back-link']} href={`/session/${params.id}`}>
           &larr; Back
-        </button>
+        </A>
         <h1>Raw Log &mdash; {params.id.slice(0, 8)}</h1>
         <Show when={totalLines() > 0}>
           <span style={{ opacity: 0.5, 'font-size': '0.8rem' }}>

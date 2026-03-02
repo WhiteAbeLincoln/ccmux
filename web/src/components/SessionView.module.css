@@ -14,9 +14,22 @@
     font-family: monospace;
   }
 
-  & header button {
+  & header button,
+  & header a.back-link {
     padding: 0.3rem 0.8rem;
     font-size: 0.9rem;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 6px;
+    border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    background-color: color-mix(in srgb, currentColor 8%, transparent);
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+  }
+
+  & header a.back-link:hover {
+    background-color: color-mix(in srgb, currentColor 14%, transparent);
+    border-color: color-mix(in srgb, currentColor 30%, transparent);
   }
 }
 
