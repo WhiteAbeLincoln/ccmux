@@ -64,6 +64,7 @@ type DisplayItem =
   | { kind: 'bash'; msg: SessionMessage }
   | { kind: 'agent'; msg: SessionMessage }
   | { kind: 'internal-group'; key: string; steps: string[]; tokens: number; msgs: SessionMessage[] }
+  | { kind: 'task-list'; tasks: Map<string, { subject: string; status: string }>; msgs: SessionMessage[] }
   | { kind: 'system'; msg: SessionMessage }
 
 function formatInput(input: unknown): string {
@@ -322,6 +323,16 @@ export default function SessionView() {
   const displayItems = createMemo<DisplayItem[]>(() => {
     const items: DisplayItem[] = []
     let internalAcc: SessionMessage[] = []
+    const taskMap = new Map<string, { subject: string; status: string }>()
+    let taskAcc: SessionMessage[] = []
+
+    function flushTasks() {
+      if (taskAcc.length === 0) return
+      const snapshot = new Map<string, { subject: string; status: string }>()
+      for (const [k, v] of taskMap) snapshot.set(k, { ...v })
+      items.push({ kind: 'task-list', tasks: snapshot, msgs: taskAcc })
+      taskAcc = []
+    }
 
     function flushInternal() {
       if (internalAcc.length === 0) return
@@ -345,32 +356,63 @@ export default function SessionView() {
     for (const m of messages() ?? []) {
       if (m.eventType === 'USER' && m.userContent?.__typename === 'UserTextContent') {
         flushInternal()
+        flushTasks()
         items.push({ kind: 'user', msg: m })
       } else if (m.eventType === 'ASSISTANT' && m.assistantContent) {
         if (hasUserFacingText(m)) {
           flushInternal()
+          flushTasks()
           items.push({ kind: 'assistant', msg: m })
         } else if (getToolUseBlock(m, 'AskUserQuestion')) {
           flushInternal()
+          flushTasks()
           items.push({ kind: 'ask-user-question', msg: m })
         } else if (getToolUseBlock(m, 'ExitPlanMode')) {
           flushInternal()
+          flushTasks()
           items.push({ kind: 'exit-plan-mode', msg: m })
         } else if (getToolUseBlock(m, 'Bash')) {
           flushInternal()
+          flushTasks()
           items.push({ kind: 'bash', msg: m })
         } else if (getAgentBlock(m)) {
           flushInternal()
+          flushTasks()
           items.push({ kind: 'agent', msg: m })
+        } else if (m.assistantContent.blocks.some((b) => b.__typename === 'ToolUseBlock' && (b.name === 'TaskCreate' || b.name === 'TaskUpdate'))) {
+          flushInternal()
+          for (const b of m.assistantContent.blocks) {
+            if (b.__typename === 'ToolUseBlock' && b.name === 'TaskCreate') {
+              const input = b.input as { subject?: string }
+              const result = toolResults().get(b.id)
+              const idMatch = result?.content.match(/Task #(\d+)/)
+              const taskId = idMatch ? idMatch[1] : b.id
+              taskMap.set(taskId, { subject: input.subject ?? '', status: 'pending' })
+            } else if (b.__typename === 'ToolUseBlock' && b.name === 'TaskUpdate') {
+              const input = b.input as { taskId?: string; status?: string }
+              if (input.taskId && input.status) {
+                const existing = taskMap.get(input.taskId)
+                if (existing) {
+                  existing.status = input.status
+                } else {
+                  taskMap.set(input.taskId, { subject: `Task ${input.taskId}`, status: input.status })
+                }
+              }
+            }
+          }
+          taskAcc.push(m)
         } else {
+          flushTasks()
           internalAcc.push(m)
         }
       } else if (m.eventType === 'SYSTEM' && m.systemInfo?.subtype === 'turn_duration') {
         flushInternal()
+        flushTasks()
         items.push({ kind: 'system', msg: m })
       }
     }
     flushInternal()
+    flushTasks()
     return items
   })
 
@@ -743,6 +785,72 @@ export default function SessionView() {
                                   </div>
                                 )}
                               </Show>
+                            </div>
+                          </Show>
+                        </div>
+                      )
+                    }}
+                  </Match>
+
+                  {/* Task list */}
+                  <Match
+                    when={
+                      item.kind === 'task-list' &&
+                      (item as DisplayItem & { kind: 'task-list' })
+                    }
+                  >
+                    {(i) => {
+                      const key = `task-list-${i().msgs[0].uuid}`
+                      const tasks = () => {
+                        const entries = [...i().tasks.entries()]
+                        entries.sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+                        return entries
+                      }
+                      const completed = () =>
+                        tasks().filter(([, t]) => t.status === 'completed').length
+                      return (
+                        <div
+                          class={styles['task-list']}
+                          classList={{ [styles['is-expanded']]: expanded().has(key) }}
+                          data-role="task-list"
+                        >
+                          <button
+                            class={styles['internal-toggle']}
+                            onClick={() => toggle(key)}
+                          >
+                            <span class={styles.caret}>
+                              {expanded().has(key) ? '\u25BE' : '\u25B8'}
+                            </span>
+                            <span class={styles['internal-steps']}>
+                              <span class={styles.step}>
+                                Tasks ({completed()}/{tasks().length} completed)
+                              </span>
+                            </span>
+                          </button>
+                          <Show when={expanded().has(key)}>
+                            <div class={styles['task-items']}>
+                              <For each={tasks()}>
+                                {([, task]) => (
+                                  <div
+                                    class={styles['task-item']}
+                                    classList={{
+                                      [styles['task-completed']]: task.status === 'completed',
+                                      [styles['task-deleted']]: task.status === 'deleted',
+                                    }}
+                                  >
+                                    <span class={styles['task-checkbox']}>
+                                      {task.status === 'completed'
+                                        ? '\u2611'
+                                        : task.status === 'in_progress'
+                                          ? '\u25D1'
+                                          : task.status === 'deleted'
+                                            ? '\u2612'
+                                            : '\u2610'}
+                                    </span>
+                                    <span class={styles['task-subject']}>{task.subject}</span>
+                                  </div>
+                                )}
+                              </For>
                             </div>
                           </Show>
                         </div>
