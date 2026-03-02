@@ -8,6 +8,8 @@ import styles from '../SessionView.module.css'
 export default function ThinkingBlockView(props: {
   blockKey: string
   thinking: string
+  sessionId: string
+  uuid: string
   expanded: Set<string>
   toggle: (key: string) => void
   tokens?: number
@@ -15,6 +17,8 @@ export default function ThinkingBlockView(props: {
   return (
     <CollapsibleBlock
       role="thinking"
+      sessionId={props.sessionId}
+      uuid={props.uuid}
       class={styles['thinking-block']}
       expanded={props.expanded.has(props.blockKey)}
       toggle={() => props.toggle(props.blockKey)}

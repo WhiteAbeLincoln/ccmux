@@ -22,16 +22,16 @@ export default function AssistantMessageView(props: {
       sessionId={props.sessionId}
       uuid={props.msg.uuid}
       extraMeta={
-        <>
-          <Show when={props.msg.assistantContent?.model}>
-            {(m) => <span class={styles.model}>{m()}</span>}
-          </Show>
-          <Show when={totalTokens(props.msg) !== null}>
-            <span class={styles.tokens}>
-              {totalTokens(props.msg)?.toLocaleString()} tokens
-            </span>
-          </Show>
-        </>
+        <Show when={props.msg.assistantContent?.model}>
+          {(m) => <span class={styles.model}>{m()}</span>}
+        </Show>
+      }
+      rightMeta={
+        <Show when={totalTokens(props.msg) !== null}>
+          <span class={styles['internal-tokens']}>
+            {totalTokens(props.msg)?.toLocaleString()} tok
+          </span>
+        </Show>
       }
     >
       <div class={styles.blocks}>
@@ -41,6 +41,7 @@ export default function AssistantMessageView(props: {
               block={block}
               msg={props.msg}
               index={idx()}
+              sessionId={props.sessionId}
               expanded={props.expanded}
               toggle={props.toggle}
               toolResults={props.toolResults}

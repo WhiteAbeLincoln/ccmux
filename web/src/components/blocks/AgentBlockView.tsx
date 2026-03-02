@@ -5,12 +5,13 @@ import { Show } from 'solid-js'
 import { A } from '@solidjs/router'
 import { truncate } from '../../lib/format'
 import type { SessionMessage } from '../../lib/types'
-import { getAgentBlock } from '../../lib/session'
+import { getAgentBlock, totalTokens } from '../../lib/session'
 import CollapsibleBlock from './CollapsibleBlock'
 import styles from '../SessionView.module.css'
 
 export default function AgentBlockView(props: {
   msg: SessionMessage
+  sessionId: string
   toolResults: Map<string, { content: string; isError: boolean | null }>
   agentMap: Map<string, string>
   expanded: Set<string>
@@ -31,12 +32,15 @@ export default function AgentBlockView(props: {
   return (
     <CollapsibleBlock
       role="agent"
+      sessionId={props.sessionId}
+      uuid={props.msg.uuid}
       class={styles['internal-single']}
       classList={{
         [styles['tool-block']]: true,
       }}
       expanded={props.expanded.has(key)}
       toggle={() => props.toggle(key)}
+      tokens={totalTokens(props.msg) ?? undefined}
       label={
         <>
           <span class={styles.step}>Agent</span>

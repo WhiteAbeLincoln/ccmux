@@ -4,7 +4,7 @@
 import { createResource, Show } from "solid-js";
 import { stripAnsi } from "../../lib/format";
 import type { SessionMessage } from "../../lib/types";
-import { getToolUseBlock } from "../../lib/session";
+import { getToolUseBlock, totalTokens } from "../../lib/session";
 import { createHighlighter, type Highlighter } from "shiki";
 import MessageBlock from "./MessageBlock";
 import styles from "../SessionView.module.css";
@@ -73,6 +73,13 @@ export default function BashBlockView(props: {
             <span class={styles["error-badge"]}>error</span>
           </Show>
         </>
+      }
+      rightMeta={
+        <Show when={totalTokens(props.msg) !== null}>
+          <span class={styles['internal-tokens']}>
+            {totalTokens(props.msg)?.toLocaleString()} tok
+          </span>
+        </Show>
       }
     >
       <HighlightedBash code={command} />

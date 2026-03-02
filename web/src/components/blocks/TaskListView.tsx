@@ -7,6 +7,8 @@ import styles from '../SessionView.module.css'
 
 export default function TaskListView(props: {
   tasks: Map<string, { subject: string; status: string }>
+  sessionId: string
+  uuid: string
   expanded: boolean
   toggle: () => void
 }) {
@@ -21,6 +23,8 @@ export default function TaskListView(props: {
   return (
     <CollapsibleBlock
       role="task-list"
+      sessionId={props.sessionId}
+      uuid={props.uuid}
       class={styles['task-list']}
       classList={{}}
       expanded={props.expanded}

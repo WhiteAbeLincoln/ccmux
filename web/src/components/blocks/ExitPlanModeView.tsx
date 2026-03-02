@@ -4,7 +4,7 @@
 import { Show } from 'solid-js'
 import { marked } from 'marked'
 import type { SessionMessage } from '../../lib/types'
-import { getToolUseBlock } from '../../lib/session'
+import { getToolUseBlock, totalTokens } from '../../lib/session'
 import MessageBlock from './MessageBlock'
 import styles from '../SessionView.module.css'
 
@@ -26,6 +26,13 @@ export default function ExitPlanModeView(props: {
       label="Plan"
       sessionId={props.sessionId}
       uuid={props.msg.uuid}
+      rightMeta={
+        <Show when={totalTokens(props.msg) !== null}>
+          <span class={styles['internal-tokens']}>
+            {totalTokens(props.msg)?.toLocaleString()} tok
+          </span>
+        </Show>
+      }
     >
       <div
         class={`${styles['plan-content']} ${styles.prose}`}

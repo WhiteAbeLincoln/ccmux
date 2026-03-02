@@ -2,9 +2,9 @@
 // Top-level DisplayItem kind='ask-user-question'. Also exports the inner AskUserQuestionView
 // for reuse, plus the AskUserQuestion type and parseAskUserAnswers helper.
 
-import { For } from "solid-js";
+import { For, Show } from "solid-js";
 import type { SessionMessage } from "../../lib/types";
-import { getToolUseBlock } from "../../lib/session";
+import { getToolUseBlock, totalTokens } from "../../lib/session";
 import MessageBlock from "./MessageBlock";
 import styles from "../SessionView.module.css";
 
@@ -27,6 +27,13 @@ export function AskQuestionBlockView(props: {
       label="Question"
       sessionId={props.sessionId}
       uuid={props.msg.uuid}
+      rightMeta={
+        <Show when={totalTokens(props.msg) !== null}>
+          <span class={styles['internal-tokens']}>
+            {totalTokens(props.msg)?.toLocaleString()} tok
+          </span>
+        </Show>
+      }
     >
       <AskUserQuestionView questions={questions} answers={answers} />
     </MessageBlock>

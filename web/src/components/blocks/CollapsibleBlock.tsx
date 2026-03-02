@@ -1,11 +1,14 @@
 import type { JSX, ParentProps } from 'solid-js'
 import { Show } from 'solid-js'
+import { A } from '@solidjs/router'
 import styles from '../SessionView.module.css'
 
 export default function CollapsibleBlock(props: ParentProps<{
   expanded: boolean
   toggle: () => void
   role: string
+  sessionId: string
+  uuid: string
   class?: string
   classList?: Record<string, boolean | undefined>
   label: JSX.Element
@@ -25,6 +28,9 @@ export default function CollapsibleBlock(props: ParentProps<{
             {props.tokens!.toLocaleString()} tok
           </span>
         </Show>
+        <A class={styles.uuid} href={`/session/${props.sessionId}/raw?uuid=${props.uuid}`}>
+          {props.uuid.slice(0, 8)}
+        </A>
       </button>
       <Show when={props.expanded}>
         {props.children}

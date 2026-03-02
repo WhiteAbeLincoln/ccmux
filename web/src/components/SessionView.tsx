@@ -349,6 +349,7 @@ export default function SessionView() {
                     {(i) => (
                       <AgentBlockView
                         msg={i().msg}
+                        sessionId={params.id}
                         toolResults={toolResults()}
                         agentMap={agentMap()}
                         expanded={expanded()}
@@ -363,6 +364,8 @@ export default function SessionView() {
                       return (
                         <TaskListView
                           tasks={i().tasks}
+                          sessionId={params.id}
+                          uuid={i().msgs[0].uuid}
                           expanded={expanded().has(key)}
                           toggle={() => toggle(key)}
                         />
@@ -377,6 +380,7 @@ export default function SessionView() {
                         steps={i().steps}
                         tokens={i().tokens}
                         msgs={i().msgs}
+                        sessionId={params.id}
                         expanded={expanded()}
                         toggle={toggle}
                         toolResults={toolResults()}

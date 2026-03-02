@@ -11,6 +11,8 @@ export default function ToolUseBlockView(props: {
   name: string
   input: unknown
   result: { content: string; isError: boolean | null } | undefined
+  sessionId: string
+  uuid: string
   expanded: Set<string>
   toggle: (key: string) => void
   tokens?: number
@@ -18,6 +20,8 @@ export default function ToolUseBlockView(props: {
   return (
     <CollapsibleBlock
       role="tool"
+      sessionId={props.sessionId}
+      uuid={props.uuid}
       class={styles['tool-block']}
       expanded={props.expanded.has(props.blockKey)}
       toggle={() => props.toggle(props.blockKey)}

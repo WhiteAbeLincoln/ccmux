@@ -11,6 +11,7 @@ export default function ContentBlockView(props: {
   block: ContentBlock
   msg: SessionMessage
   index: number
+  sessionId: string
   expanded: Set<string>
   toggle: (key: string) => void
   toolResults: Map<string, { content: string; isError: boolean | null }>
@@ -31,6 +32,8 @@ export default function ContentBlockView(props: {
         <ThinkingBlockView
           blockKey={key}
           thinking={props.block.thinking}
+          sessionId={props.sessionId}
+          uuid={props.msg.uuid}
           expanded={props.expanded}
           toggle={props.toggle}
           tokens={props.tokens}
@@ -48,6 +51,8 @@ export default function ContentBlockView(props: {
           name={props.block.name}
           input={props.block.input}
           result={result}
+          sessionId={props.sessionId}
+          uuid={props.msg.uuid}
           expanded={props.expanded}
           toggle={props.toggle}
           tokens={props.tokens}

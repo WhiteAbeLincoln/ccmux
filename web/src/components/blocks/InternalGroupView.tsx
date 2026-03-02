@@ -14,6 +14,7 @@ export default function InternalGroupView(props: {
   steps: string[]
   tokens: number
   msgs: SessionMessage[]
+  sessionId: string
   expanded: Set<string>
   toggle: (key: string) => void
   toolResults: Map<string, { content: string; isError: boolean | null }>
@@ -28,6 +29,7 @@ export default function InternalGroupView(props: {
                 block={block}
                 msg={msg}
                 index={idx()}
+                sessionId={props.sessionId}
                 expanded={props.expanded}
                 toggle={props.toggle}
                 toolResults={props.toolResults}
@@ -43,6 +45,8 @@ export default function InternalGroupView(props: {
   return (
     <CollapsibleBlock
       role="internal-group"
+      sessionId={props.sessionId}
+      uuid={props.msgs[0].uuid}
       class={styles['internal-group']}
       expanded={props.expanded.has(props.groupKey)}
       toggle={() => props.toggle(props.groupKey)}
@@ -75,6 +79,7 @@ export default function InternalGroupView(props: {
                   block={block}
                   msg={msg}
                   index={idx()}
+                  sessionId={props.sessionId}
                   expanded={props.expanded}
                   toggle={props.toggle}
                   toolResults={props.toolResults}
