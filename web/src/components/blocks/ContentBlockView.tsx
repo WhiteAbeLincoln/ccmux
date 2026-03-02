@@ -5,6 +5,7 @@ import { marked } from 'marked'
 import type { SessionMessage, ContentBlock } from '../../lib/types'
 import ThinkingBlockView from './ThinkingBlockView'
 import ToolUseBlockView from './ToolUseBlockView'
+import ReadBlockView from './ReadBlockView'
 import styles from '../SessionView.module.css'
 
 export default function ContentBlockView(props: {
@@ -44,6 +45,22 @@ export default function ContentBlockView(props: {
   if (props.block.__typename === 'ToolUseBlock') {
     const key = `${props.msg.uuid}-tool-${props.index}`
     const result = props.toolResults.get(props.block.id)
+    if (props.block.name === 'Read') {
+      return (
+        <div class={styles.block}>
+          <ReadBlockView
+            blockKey={key}
+            input={props.block.input}
+            result={result}
+            sessionId={props.sessionId}
+            uuid={props.msg.uuid}
+            expanded={props.expanded}
+            toggle={props.toggle}
+            tokens={props.tokens}
+          />
+        </div>
+      )
+    }
     return (
       <div class={styles.block}>
         <ToolUseBlockView
