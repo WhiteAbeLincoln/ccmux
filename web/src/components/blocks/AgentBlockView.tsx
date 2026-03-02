@@ -1,8 +1,12 @@
+// Agent tool call rendered as a collapsible block with link to the subagent session.
+// Top-level DisplayItem kind='agent'.
+
 import { Show } from 'solid-js'
 import { A } from '@solidjs/router'
 import { truncate } from '../../lib/format'
 import type { SessionMessage } from '../../lib/types'
 import { getAgentBlock } from '../../lib/session'
+import CollapsibleBlock from './CollapsibleBlock'
 import styles from '../SessionView.module.css'
 
 export default function AgentBlockView(props: {
@@ -25,22 +29,16 @@ export default function AgentBlockView(props: {
   const key = `${props.msg.uuid}-agent`
   const outputKey = `${props.msg.uuid}-agent-output`
   return (
-    <div
+    <CollapsibleBlock
+      role="agent"
       class={styles['internal-single']}
       classList={{
         [styles['tool-block']]: true,
-        [styles['is-expanded']]: props.expanded.has(key),
       }}
-      data-role="agent"
-    >
-      <button
-        class={styles['internal-toggle']}
-        onClick={() => props.toggle(key)}
-      >
-        <span class={styles.caret}>
-          {props.expanded.has(key) ? '\u25BE' : '\u25B8'}
-        </span>
-        <span class={styles['internal-steps']}>
+      expanded={props.expanded.has(key)}
+      toggle={() => props.toggle(key)}
+      label={
+        <>
           <span class={styles.step}>Agent</span>
           <Show when={subagentType}>
             <span class={styles['step-dot']}>&middot;</span>
@@ -48,36 +46,35 @@ export default function AgentBlockView(props: {
           </Show>
           <span class={styles['step-dot']}>&middot;</span>
           <span class={styles.step}>{description}</span>
-        </span>
-      </button>
-      <Show when={props.expanded.has(key)}>
-        <div class={styles['agent-expanded']}>
-          <Show when={agentId()}>
-            {(aid) => (
-              <A
-                class={styles['agent-link']}
-                href={`/session/agent-${aid()}`}
-              >
-                View subagent session &rarr;
-              </A>
-            )}
-          </Show>
-          <Show when={result}>
-            {(r) => (
-              <div class={styles['agent-output-section']}>
-                <button class={styles.toggle} onClick={() => props.toggle(outputKey)}>
-                  {props.expanded.has(outputKey) ? '\u25BE' : '\u25B8'} Output
-                </button>
-                <Show when={props.expanded.has(outputKey)}>
-                  <pre class={styles['agent-output']}>
-                    {truncate(r().content, 5000)}
-                  </pre>
-                </Show>
-              </div>
-            )}
-          </Show>
-        </div>
-      </Show>
-    </div>
+        </>
+      }
+    >
+      <div class={styles['agent-expanded']}>
+        <Show when={agentId()}>
+          {(aid) => (
+            <A
+              class={styles['agent-link']}
+              href={`/session/agent-${aid()}`}
+            >
+              View subagent session &rarr;
+            </A>
+          )}
+        </Show>
+        <Show when={result}>
+          {(r) => (
+            <div class={styles['agent-output-section']}>
+              <button class={styles.toggle} onClick={() => props.toggle(outputKey)}>
+                {props.expanded.has(outputKey) ? '\u25BE' : '\u25B8'} Output
+              </button>
+              <Show when={props.expanded.has(outputKey)}>
+                <pre class={styles['agent-output']}>
+                  {truncate(r().content, 5000)}
+                </pre>
+              </Show>
+            </div>
+          )}
+        </Show>
+      </div>
+    </CollapsibleBlock>
   )
 }

@@ -7,7 +7,7 @@ import type { SessionMessage } from '../lib/types'
 import { getToolUseBlock, getAgentBlock, hasUserFacingText } from '../lib/session'
 import UserMessageView from './blocks/UserMessageView'
 import AssistantMessageView from './blocks/AssistantMessageView'
-import AskQuestionBlockView from './blocks/AskQuestionBlockView'
+import { AskQuestionBlockView } from './blocks/AskUserQuestionView'
 import ExitPlanModeView from './blocks/ExitPlanModeView'
 import BashBlockView from './blocks/BashBlockView'
 import AgentBlockView from './blocks/AgentBlockView'
@@ -338,6 +338,7 @@ export default function SessionView() {
                     {(i) => (
                       <BashBlockView
                         msg={i().msg}
+                        sessionId={params.id}
                         toolResults={toolResults()}
                         expanded={expanded()}
                         toggle={toggle}

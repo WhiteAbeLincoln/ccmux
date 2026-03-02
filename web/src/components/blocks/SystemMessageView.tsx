@@ -1,3 +1,5 @@
+// Turn duration marker shown between assistant turns. Top-level DisplayItem kind='system'.
+
 import type { SessionMessage } from '../../lib/types'
 import styles from '../SessionView.module.css'
 

@@ -1,3 +1,6 @@
+// Dispatcher that renders an individual ContentBlock (text, thinking, or tool use).
+// Used inside AssistantMessageView and InternalGroupView.
+
 import { marked } from 'marked'
 import type { SessionMessage, ContentBlock } from '../../lib/types'
 import ThinkingBlockView from './ThinkingBlockView'
@@ -11,6 +14,7 @@ export default function ContentBlockView(props: {
   expanded: Set<string>
   toggle: (key: string) => void
   toolResults: Map<string, { content: string; isError: boolean | null }>
+  tokens?: number
 }) {
   if (props.block.__typename === 'TextBlock') {
     return (
@@ -29,6 +33,7 @@ export default function ContentBlockView(props: {
           thinking={props.block.thinking}
           expanded={props.expanded}
           toggle={props.toggle}
+          tokens={props.tokens}
         />
       </div>
     )
@@ -45,6 +50,7 @@ export default function ContentBlockView(props: {
           result={result}
           expanded={props.expanded}
           toggle={props.toggle}
+          tokens={props.tokens}
         />
       </div>
     )

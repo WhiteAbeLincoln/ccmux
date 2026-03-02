@@ -1,8 +1,11 @@
+// ExitPlanMode tool call rendered as a markdown plan with collapsible accepted/rejected output.
+// Top-level DisplayItem kind='exit-plan-mode'.
+
 import { Show } from 'solid-js'
-import { A } from '@solidjs/router'
 import { marked } from 'marked'
 import type { SessionMessage } from '../../lib/types'
 import { getToolUseBlock } from '../../lib/session'
+import MessageBlock from './MessageBlock'
 import styles from '../SessionView.module.css'
 
 export default function ExitPlanModeView(props: {
@@ -17,13 +20,13 @@ export default function ExitPlanModeView(props: {
   const result = props.toolResults.get(block.id)
   const outputKey = `${props.msg.uuid}-plan-output`
   return (
-    <div class={`${styles.message} ${styles['exit-plan-mode']}`} data-role="exit-plan-mode">
-      <div class={styles.meta}>
-        <span class={styles['role-label']}>Plan</span>
-        <A class={styles.uuid} href={`/session/${props.sessionId}/raw?uuid=${props.msg.uuid}`}>
-          {props.msg.uuid.slice(0, 8)}
-        </A>
-      </div>
+    <MessageBlock
+      variant="exit-plan-mode"
+      role="exit-plan-mode"
+      label="Plan"
+      sessionId={props.sessionId}
+      uuid={props.msg.uuid}
+    >
       <div
         class={`${styles['plan-content']} ${styles.prose}`}
         innerHTML={marked.parse(plan) as string}
@@ -46,6 +49,6 @@ export default function ExitPlanModeView(props: {
           </div>
         )}
       </Show>
-    </div>
+    </MessageBlock>
   )
 }

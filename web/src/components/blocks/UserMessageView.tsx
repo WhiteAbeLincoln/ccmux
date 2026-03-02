@@ -1,6 +1,8 @@
-import { A } from '@solidjs/router'
+// User text message rendered as markdown. Top-level DisplayItem kind='user'.
+
 import { marked } from 'marked'
 import type { SessionMessage } from '../../lib/types'
+import MessageBlock from './MessageBlock'
 import styles from '../SessionView.module.css'
 
 export default function UserMessageView(props: {
@@ -8,13 +10,7 @@ export default function UserMessageView(props: {
   sessionId: string
 }) {
   return (
-    <div class={`${styles.message} ${styles.user}`} data-role="user">
-      <div class={styles.meta}>
-        <span class={styles['role-label']}>User</span>
-        <A class={styles.uuid} href={`/session/${props.sessionId}/raw?uuid=${props.msg.uuid}`}>
-          {props.msg.uuid.slice(0, 8)}
-        </A>
-      </div>
+    <MessageBlock variant="user" role="user" label="User" sessionId={props.sessionId} uuid={props.msg.uuid}>
       <div
         class={`${styles.content} ${styles.prose}`}
         innerHTML={
@@ -25,6 +21,6 @@ export default function UserMessageView(props: {
           ) as string
         }
       />
-    </div>
+    </MessageBlock>
   )
 }

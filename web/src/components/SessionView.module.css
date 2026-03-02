@@ -124,10 +124,6 @@
   margin: -0.25rem 0;
 }
 
-.internal-single.thinking-block:not(.is-expanded),
-.internal-single.tool-block:not(.is-expanded) {
-  background: none;
-}
 
 .internal-expanded {
   display: flex;
@@ -286,8 +282,11 @@
 }
 
 .thinking-block {
-  background: color-mix(in srgb, currentColor 3%, transparent);
   border-radius: 4px;
+}
+
+.thinking-block.is-expanded {
+  background: color-mix(in srgb, currentColor 3%, transparent);
 }
 
 .thinking-content {
@@ -308,8 +307,11 @@
 }
 
 .tool-block {
-  background: color-mix(in srgb, currentColor 3%, transparent);
   border-radius: 4px;
+}
+
+.tool-block.is-expanded {
+  background: color-mix(in srgb, currentColor 3%, transparent);
 }
 
 .toggle {
@@ -392,19 +394,6 @@
   padding: 0.5rem 0.75rem;
 }
 
-.bash-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.35rem;
-}
-
-.bash-prompt {
-  font-family: monospace;
-  font-weight: 700;
-  font-size: 0.9rem;
-  opacity: 0.5;
-}
 
 .bash-desc {
   font-size: 0.8rem;
