@@ -22,9 +22,11 @@ impl Query {
         let sessions: Vec<Session> = sessions
             .iter()
             .filter(|s| {
-                project
-                    .as_ref()
-                    .map_or(true, |p| s.project.contains(p.as_str()))
+                // Hide sessions with no user messages (e.g. file-history-snapshot only)
+                s.first_message.is_some()
+                    && project
+                        .as_ref()
+                        .map_or(true, |p| s.project.contains(p.as_str()))
             })
             .map(Session::from)
             .collect();
