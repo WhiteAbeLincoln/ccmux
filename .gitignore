@@ -27,3 +27,5 @@ target
 # Web client
 web/node_modules
 web/dist
+# nix build
+/result
