@@ -2,7 +2,7 @@ import { createSignal, createResource, createMemo, For, Show, Switch, Match } fr
 import { useParams, useNavigate, A } from '@solidjs/router'
 import { query } from '../lib/graphql'
 import { marked } from 'marked'
-import type { SessionMessage, ContentBlock } from '../lib/types'
+import type { SessionMessage, ContentBlock, ToolUseBlock } from '../lib/types'
 import styles from './SessionView.module.css'
 
 const SESSION_QUERY = `query ($id: String!) {
@@ -31,6 +31,7 @@ const SESSION_QUERY = `query ($id: String!) {
 type DisplayItem =
   | { kind: 'user'; msg: SessionMessage }
   | { kind: 'assistant'; msg: SessionMessage }
+  | { kind: 'ask-user-question'; msg: SessionMessage }
   | { kind: 'internal-group'; key: string; steps: string[]; tokens: number; msgs: SessionMessage[] }
   | { kind: 'system'; msg: SessionMessage }
 
@@ -66,6 +67,32 @@ function compactSteps(steps: string[]): { name: string; count: number }[] {
     }
   }
   return result
+}
+
+interface AskUserQuestion {
+  question: string
+  header: string
+  options: { label: string; description: string }[]
+  multiSelect: boolean
+}
+
+function getAskUserQuestionBlock(msg: SessionMessage): ToolUseBlock | null {
+  if (!msg.assistantContent) return null
+  return (
+    (msg.assistantContent.blocks.find(
+      (b): b is ToolUseBlock => b.__typename === 'ToolUseBlock' && b.name === 'AskUserQuestion',
+    ) as ToolUseBlock) ?? null
+  )
+}
+
+function parseAskUserAnswers(resultContent: string): Map<string, string> {
+  const answers = new Map<string, string>()
+  const regex = /"([^"]+)"="([^"]+)"/g
+  let match
+  while ((match = regex.exec(resultContent)) !== null) {
+    answers.set(match[1], match[2])
+  }
+  return answers
 }
 
 // --- Shared sub-components (same file, no separate files needed) ---
@@ -132,6 +159,52 @@ function ToolUseBlockView(props: {
   )
 }
 
+function AskUserQuestionView(props: {
+  questions: AskUserQuestion[]
+  answers: Map<string, string>
+}) {
+  return (
+    <div class={styles['ask-questions']} data-component="ask-user-question">
+      <For each={props.questions}>
+        {(q) => {
+          const answer = () => props.answers.get(q.question)
+          return (
+            <div class={styles['question-group']} data-question={q.header}>
+              <div class={styles['question-header']}>
+                <span class={styles['question-badge']}>{q.header}</span>
+                {q.multiSelect && <span class={styles['multi-badge']}>multi</span>}
+              </div>
+              <div class={styles['question-text']}>{q.question}</div>
+              <div class={styles['question-options']}>
+                <For each={q.options}>
+                  {(opt) => {
+                    const selected = () => answer() === opt.label
+                    return (
+                      <div
+                        class={styles['question-option']}
+                        classList={{ [styles['option-selected']]: selected() }}
+                        data-selected={selected() ? 'true' : undefined}
+                      >
+                        <span class={styles['option-indicator']}>
+                          {selected() ? '\u25CF' : '\u25CB'}
+                        </span>
+                        <div>
+                          <span class={styles['option-label']}>{opt.label}</span>
+                          <span class={styles['option-desc']}>{opt.description}</span>
+                        </div>
+                      </div>
+                    )
+                  }}
+                </For>
+              </div>
+            </div>
+          )
+        }}
+      </For>
+    </div>
+  )
+}
+
 // --- Main component ---
 
 export default function SessionView() {
@@ -189,6 +262,9 @@ export default function SessionView() {
         if (hasUserFacingText(m)) {
           flushInternal()
           items.push({ kind: 'assistant', msg: m })
+        } else if (getAskUserQuestionBlock(m)) {
+          flushInternal()
+          items.push({ kind: 'ask-user-question', msg: m })
         } else {
           internalAcc.push(m)
         }
@@ -281,7 +357,7 @@ export default function SessionView() {
                   {/* User message */}
                   <Match when={item.kind === 'user' && item as DisplayItem & { kind: 'user' }}>
                     {(i) => (
-                      <div class={`${styles.message} ${styles.user}`}>
+                      <div class={`${styles.message} ${styles.user}`} data-role="user">
                         <div class={styles.meta}>
                           <span class={styles['role-label']}>User</span>
                           <A class={styles.uuid} href={`/session/${params.id}/raw?uuid=${i().msg.uuid}`}>{i().msg.uuid.slice(0, 8)}</A>
@@ -309,7 +385,7 @@ export default function SessionView() {
                     {(i) => {
                       const msg = i().msg
                       return (
-                        <div class={`${styles.message} ${styles.assistant}`}>
+                        <div class={`${styles.message} ${styles.assistant}`} data-role="assistant">
                           <div class={styles.meta}>
                             <span class={styles['role-label']}>Assistant</span>
                             <A class={styles.uuid} href={`/session/${params.id}/raw?uuid=${msg.uuid}`}>{msg.uuid.slice(0, 8)}</A>
@@ -327,6 +403,34 @@ export default function SessionView() {
                               {(block, idx) => renderBlock(block, msg, idx())}
                             </For>
                           </div>
+                        </div>
+                      )
+                    }}
+                  </Match>
+
+                  {/* AskUserQuestion block */}
+                  <Match
+                    when={
+                      item.kind === 'ask-user-question' &&
+                      (item as DisplayItem & { kind: 'ask-user-question' })
+                    }
+                  >
+                    {(i) => {
+                      const msg = i().msg
+                      const block = getAskUserQuestionBlock(msg)!
+                      const input = block.input as { questions?: AskUserQuestion[] }
+                      const questions = input.questions ?? []
+                      const result = toolResults().get(block.id)
+                      const answers = result ? parseAskUserAnswers(result.content) : new Map<string, string>()
+                      return (
+                        <div class={`${styles.message} ${styles['ask-user-question']}`} data-role="ask-user-question">
+                          <div class={styles.meta}>
+                            <span class={styles['role-label']}>Question</span>
+                            <A class={styles.uuid} href={`/session/${params.id}/raw?uuid=${msg.uuid}`}>
+                              {msg.uuid.slice(0, 8)}
+                            </A>
+                          </div>
+                          <AskUserQuestionView questions={questions} answers={answers} />
                         </div>
                       )
                     }}
@@ -455,7 +559,7 @@ export default function SessionView() {
                     }
                   >
                     {(i) => (
-                      <div class={styles['internal-group']}>
+                      <div class={styles['internal-group']} data-role="internal-group">
                         <button
                           class={styles['internal-toggle']}
                           onClick={() => toggle(i().key)}
@@ -504,7 +608,7 @@ export default function SessionView() {
 
                   {/* System message */}
                   <Match when={item.kind === 'system' && item.msg.systemInfo?.durationMs}>
-                    <div class={`${styles.message} ${styles.system}`}>
+                    <div class={`${styles.message} ${styles.system}`} data-role="system">
                       Turn completed in{' '}
                       {((item as DisplayItem & { kind: 'system' }).msg.systemInfo!.durationMs! / 1000).toFixed(1)}s
                     </div>

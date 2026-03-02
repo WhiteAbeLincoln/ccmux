@@ -92,7 +92,6 @@ impl UserMessage {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ToolResultBlock {
     #[serde(rename = "type")]
     pub block_type: String,
