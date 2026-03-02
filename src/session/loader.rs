@@ -190,6 +190,36 @@ fn extract_json_string(line: &str, key: &str) -> Option<String> {
     Some(rest[..end].to_string())
 }
 
+/// Load a range of lines from a session JSONL file.
+/// Returns (vec of (line_number, content), total_line_count).
+pub fn load_session_lines(
+    path: &Path,
+    offset: usize,
+    limit: usize,
+) -> std::io::Result<(Vec<(usize, String)>, usize)> {
+    use std::io::BufRead;
+    let file = std::fs::File::open(path)?;
+    let reader = std::io::BufReader::new(file);
+
+    let mut lines_out = Vec::new();
+    let mut total = 0;
+
+    for (idx, line) in reader.lines().enumerate() {
+        let line = line?;
+        total = idx + 1;
+        if idx < offset {
+            continue;
+        }
+        if limit > 0 && lines_out.len() >= limit {
+            // Keep counting total lines
+            continue;
+        }
+        lines_out.push((idx, line));
+    }
+
+    Ok((lines_out, total))
+}
+
 /// Load all events from a session JSONL file.
 pub fn load_session(path: &Path) -> std::io::Result<Vec<Event>> {
     use std::io::BufRead;

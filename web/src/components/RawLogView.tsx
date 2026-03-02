@@ -1,82 +1,275 @@
-import { createResource, createEffect, Show, Switch, Match } from 'solid-js'
+import {
+  createSignal,
+  createResource,
+  createEffect,
+  Show,
+  For,
+
+} from 'solid-js'
 import { useParams, useNavigate, useSearchParams } from '@solidjs/router'
+import { createVirtualizer } from '@tanstack/solid-virtual'
 import { query } from '../lib/graphql'
+import { JsonTree } from '../lib/json-tree'
 import type { Session } from '../lib/types'
 import styles from './RawLogView.module.css'
 
-const RAW_LOG_QUERY = `query ($id: String!) {
-  sessionRawLog(id: $id)
+const PAGE_SIZE = 200
+
+const LOG_LINES_QUERY = `query ($id: String!, $offset: Int!, $limit: Int!) {
+  sessionLogLines(id: $id, offset: $offset, limit: $limit) {
+    lines { lineNumber content }
+    totalLines
+  }
 }`
 
 const SESSION_INFO_QUERY = `query ($id: String!) {
   sessionInfo(id: $id) { id filePath }
 }`
 
+const RAW_LOG_QUERY = `query ($id: String!) {
+  sessionRawLog(id: $id)
+}`
+
+interface LogLine {
+  lineNumber: number
+  content: string
+}
+
+/** Minimal parse to extract type, uuid, timestamp for the summary row */
+function parseSummary(raw: string): {
+  type: string
+  uuid: string
+  timestamp: string
+} {
+  let type = ''
+  let uuid = ''
+  let timestamp = ''
+  // Quick regex extractions — cheaper than JSON.parse for summary
+  const tm = raw.match(/"type"\s*:\s*"([^"]*)"/)
+  if (tm) type = tm[1]
+  const um = raw.match(/"uuid"\s*:\s*"([^"]*)"/)
+  if (um) uuid = um[1]
+  const tsm = raw.match(/"timestamp"\s*:\s*"([^"]*)"/)
+  if (tsm) timestamp = tsm[1]
+  return { type, uuid, timestamp }
+}
+
+function badgeClass(type: string): string {
+  switch (type) {
+    case 'user':
+      return styles['type-user']
+    case 'assistant':
+      return styles['type-assistant']
+    case 'system':
+      return styles['type-system']
+    case 'progress':
+      return styles['type-progress']
+    default:
+      return styles['type-other']
+  }
+}
+
+function formatTimestamp(ts: string): string {
+  if (!ts) return ''
+  try {
+    const d = new Date(ts)
+    return d.toLocaleTimeString()
+  } catch {
+    return ts
+  }
+}
+
 export default function RawLogView() {
   const params = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams<{ uuid?: string }>()
 
-  let containerRef: HTMLDivElement | undefined
+  let scrollRef!: HTMLDivElement
 
-  const [data] = createResource(
+  // Line cache: lineNumber -> raw content
+  const [lineCache, setLineCache] = createSignal<Map<number, string>>(new Map())
+  const [totalLines, setTotalLines] = createSignal(0)
+  const [expandedLines, setExpandedLines] = createSignal<Set<number>>(new Set())
+  const [highlightLine, setHighlightLine] = createSignal<number | null>(null)
+  const [initialScrollDone, setInitialScrollDone] = createSignal(false)
+
+  // Track in-flight fetches to avoid duplicates
+  const fetchingRanges = new Set<string>()
+
+  // Fetch session info
+  const [sessionInfo] = createResource(
     () => params.id,
     async (id) => {
-      const [rawData, infoData] = await Promise.all([
-        query<{ sessionRawLog: string | null }>(RAW_LOG_QUERY, { id }),
-        query<{ sessionInfo: Session | null }>(SESSION_INFO_QUERY, { id }),
-      ])
-
-      const rawContent = rawData.sessionRawLog
-      const filePath = infoData.sessionInfo?.filePath ?? null
-      let highlightedHtml = ''
-      let targetLine: number | null = null
-
-      if (rawContent) {
-        // Find the line containing the target UUID
-        const targetUuid = searchParams.uuid
-        if (targetUuid) {
-          const lines = rawContent.split('\n')
-          for (let i = 0; i < lines.length; i++) {
-            if (lines[i].includes(targetUuid)) {
-              targetLine = i
-              break
-            }
-          }
-        }
-
-        const { createHighlighter } = await import('shiki')
-        const highlighter = await createHighlighter({
-          langs: ['jsonl'],
-          themes: ['vitesse-dark', 'vitesse-light'],
-        })
-        highlightedHtml = highlighter.codeToHtml(rawContent, {
-          lang: 'jsonl',
-          themes: { dark: 'vitesse-dark', light: 'vitesse-light' },
-        })
-      }
-
-      return { rawContent, filePath, highlightedHtml, targetLine }
+      const data = await query<{ sessionInfo: Session | null }>(
+        SESSION_INFO_QUERY,
+        { id },
+      )
+      return data.sessionInfo
     },
   )
 
-  // Scroll to target line after render
-  createEffect(() => {
-    const d = data()
-    if (!d || d.targetLine === null || !containerRef) return
-    // Wait a tick for innerHTML to be applied
-    requestAnimationFrame(() => {
-      const lines = containerRef!.querySelectorAll('.line')
-      const target = lines[d.targetLine!]
-      if (target) {
-        target.classList.add(styles['highlight-line'])
-        target.scrollIntoView({ block: 'center' })
+  // Initial load: get total line count and first page
+  const [initialLoad] = createResource(
+    () => params.id,
+    async (id) => {
+      const data = await query<{
+        sessionLogLines: { lines: LogLine[]; totalLines: number } | null
+      }>(LOG_LINES_QUERY, { id, offset: 0, limit: PAGE_SIZE })
+
+      if (!data.sessionLogLines) return null
+
+      const { lines, totalLines: total } = data.sessionLogLines
+      setTotalLines(total)
+
+      const cache = new Map<number, string>()
+      for (const l of lines) {
+        cache.set(l.lineNumber, l.content)
       }
-    })
+      setLineCache(cache)
+
+      // If there's a uuid param, find which line it's on
+      const targetUuid = searchParams.uuid
+      if (targetUuid) {
+        // Match the uuid field specifically, not parentUuid or messageId
+        const needle = `"uuid":"${targetUuid}"`
+
+        // Check if it's in the first page
+        for (const l of lines) {
+          if (l.content.includes(needle)) {
+            setHighlightLine(l.lineNumber)
+            setExpandedLines(new Set([l.lineNumber]))
+            return { total }
+          }
+        }
+
+        // Not in first page — fetch all remaining to find it
+        if (total > PAGE_SIZE) {
+          const rest = await query<{
+            sessionLogLines: { lines: LogLine[]; totalLines: number } | null
+          }>(LOG_LINES_QUERY, { id, offset: PAGE_SIZE, limit: total - PAGE_SIZE })
+
+          if (rest.sessionLogLines) {
+            const newCache = new Map(cache)
+            for (const l of rest.sessionLogLines.lines) {
+              newCache.set(l.lineNumber, l.content)
+              if (l.content.includes(needle)) {
+                setHighlightLine(l.lineNumber)
+                setExpandedLines(new Set([l.lineNumber]))
+              }
+            }
+            setLineCache(newCache)
+          }
+        }
+      }
+
+      return { total }
+    },
+  )
+
+  async function fetchRange(start: number, end: number) {
+    const key = `${start}-${end}`
+    if (fetchingRanges.has(key)) return
+    fetchingRanges.add(key)
+
+    try {
+      const data = await query<{
+        sessionLogLines: { lines: LogLine[]; totalLines: number } | null
+      }>(LOG_LINES_QUERY, {
+        id: params.id,
+        offset: start,
+        limit: end - start,
+      })
+
+      if (data.sessionLogLines) {
+        setLineCache((prev) => {
+          const next = new Map(prev)
+          for (const l of data.sessionLogLines!.lines) {
+            next.set(l.lineNumber, l.content)
+          }
+          return next
+        })
+      }
+    } finally {
+      fetchingRanges.delete(key)
+    }
+  }
+
+  // Virtual scroll
+  const virtualizer = createVirtualizer({
+    get count() {
+      return totalLines()
+    },
+    getScrollElement: () => scrollRef,
+    estimateSize: () => 32,
+    overscan: 20,
+    measureElement: (el) => el.getBoundingClientRect().height,
   })
 
-  function download() {
-    const content = data()?.rawContent
+  // Scroll to target UUID after initial load
+  createEffect(() => {
+    const hl = highlightLine()
+    if (hl !== null && !initialScrollDone() && totalLines() > 0) {
+      setInitialScrollDone(true)
+      // Defer to let virtualizer initialize
+      requestAnimationFrame(() => {
+        virtualizer.scrollToIndex(hl, { align: 'center' })
+      })
+    }
+  })
+
+  // Lazy load: when visible range approaches unfetched regions
+  createEffect(() => {
+    const items = virtualizer.getVirtualItems()
+    if (items.length === 0) return
+
+    const cache = lineCache()
+    const start = items[0].index
+    const end = items[items.length - 1].index
+
+    // Check for gaps in the visible range + buffer
+    const fetchStart = Math.max(0, start - 50)
+    const fetchEnd = Math.min(totalLines(), end + 50)
+
+    let gapStart: number | null = null
+    for (let i = fetchStart; i < fetchEnd; i++) {
+      if (!cache.has(i)) {
+        if (gapStart === null) gapStart = i
+      } else if (gapStart !== null) {
+        // Align to page boundaries
+        const pageStart = Math.floor(gapStart / PAGE_SIZE) * PAGE_SIZE
+        const pageEnd = Math.min(
+          pageStart + PAGE_SIZE,
+          totalLines(),
+        )
+        fetchRange(pageStart, pageEnd)
+        gapStart = null
+      }
+    }
+    if (gapStart !== null) {
+      const pageStart = Math.floor(gapStart / PAGE_SIZE) * PAGE_SIZE
+      const pageEnd = Math.min(pageStart + PAGE_SIZE, totalLines())
+      fetchRange(pageStart, pageEnd)
+    }
+  })
+
+  function toggleLine(lineNum: number) {
+    setExpandedLines((prev) => {
+      const next = new Set(prev)
+      if (next.has(lineNum)) {
+        next.delete(lineNum)
+      } else {
+        next.add(lineNum)
+      }
+      return next
+    })
+  }
+
+  // Download using the full raw log query
+  async function download() {
+    const data = await query<{ sessionRawLog: string | null }>(RAW_LOG_QUERY, {
+      id: params.id,
+    })
+    const content = data.sessionRawLog
     if (!content) return
     const blob = new Blob([content], { type: 'application/jsonl' })
     const url = URL.createObjectURL(blob)
@@ -90,37 +283,168 @@ export default function RawLogView() {
   return (
     <div class={styles['raw-log-view']}>
       <header>
-        <button onClick={() => navigate(`/session/${params.id}`)}>&larr; Back</button>
+        <button onClick={() => navigate(`/session/${params.id}`)}>
+          &larr; Back
+        </button>
         <h1>Raw Log &mdash; {params.id.slice(0, 8)}</h1>
-        <Show when={data()?.rawContent}>
+        <Show when={totalLines() > 0}>
+          <span style={{ opacity: 0.5, 'font-size': '0.8rem' }}>
+            {totalLines()} lines
+          </span>
+        </Show>
+        <Show when={totalLines() > 0}>
           <button class={styles['download-btn']} onClick={download}>
             Download
           </button>
         </Show>
       </header>
 
-      <Show when={data()?.filePath}>
+      <Show when={sessionInfo()?.filePath}>
         {(fp) => <div class={styles['file-path']}>{fp()}</div>}
       </Show>
 
-      <Switch>
-        <Match when={data.loading}>
-          <p class={styles.status}>Loading...</p>
-        </Match>
-        <Match when={data.error}>
-          <p class={`${styles.status} ${styles.error}`}>
-            Error: {(data.error as Error).message}
-          </p>
-        </Match>
-        <Match when={!data()?.rawContent}>
-          <p class={styles.status}>Empty log file.</p>
-        </Match>
-        <Match when={data()?.highlightedHtml}>
-          {(html) => (
-            <div ref={containerRef} class={styles['highlighted-json']} innerHTML={html()} />
-          )}
-        </Match>
-      </Switch>
+      <Show when={initialLoad.loading}>
+        <p class={styles.status}>Loading...</p>
+      </Show>
+      <Show when={initialLoad.error}>
+        <p class={`${styles.status} ${styles.error}`}>
+          Error: {(initialLoad.error as Error).message}
+        </p>
+      </Show>
+      <Show when={totalLines() === 0 && !initialLoad.loading && !initialLoad.error}>
+        <p class={styles.status}>Empty log file.</p>
+      </Show>
+
+      <div ref={scrollRef} class={styles['virtual-scroll']}>
+        <div
+          class={styles['virtual-inner']}
+          style={{ height: `${virtualizer.getTotalSize()}px` }}
+        >
+          <For each={virtualizer.getVirtualItems()}>
+            {(vItem) => {
+              const lineNum = vItem.index
+              const raw = () => lineCache().get(lineNum)
+              const isExpanded = () => expandedLines().has(lineNum)
+              const isHighlight = () => highlightLine() === lineNum
+
+              return (
+                <Show
+                  when={raw()}
+                  fallback={
+                    <div
+                      data-index={vItem.index}
+                      ref={(el) => queueMicrotask(() => virtualizer.measureElement(el))}
+                      class={styles['line-row']}
+                      style={{
+                        transform: `translateY(${vItem.start}px)`,
+                      }}
+                    >
+                      <span class={styles['line-num']}>{lineNum + 1}</span>
+                      <span style={{ opacity: 0.3 }}>Loading...</span>
+                    </div>
+                  }
+                >
+                  {(content) => {
+                    const summary = () => parseSummary(content())
+
+                    return (
+                      <Show
+                        when={isExpanded()}
+                        fallback={
+                          <div
+                            data-index={vItem.index}
+                            ref={(el) => queueMicrotask(() => virtualizer.measureElement(el))}
+                            class={`${styles['line-row']} ${isHighlight() ? styles['highlight-line'] : ''}`}
+                            style={{
+                              transform: `translateY(${vItem.start}px)`,
+                            }}
+                            onClick={() => toggleLine(lineNum)}
+                          >
+                            <span class={styles['line-num']}>
+                              {lineNum + 1}
+                            </span>
+                            <span
+                              class={`${styles['type-badge']} ${badgeClass(summary().type)}`}
+                            >
+                              {summary().type || '?'}
+                            </span>
+                            <span class={styles['line-uuid']}>
+                              {summary().uuid
+                                ? summary().uuid.slice(0, 8)
+                                : ''}
+                            </span>
+                            <span class={styles['line-preview']}>
+                              {content().length > 120
+                                ? content().slice(0, 120) + '...'
+                                : content()}
+                            </span>
+                            <span class={styles['line-timestamp']}>
+                              {formatTimestamp(summary().timestamp)}
+                            </span>
+                          </div>
+                        }
+                      >
+                        <div
+                          data-index={vItem.index}
+                          ref={(el) => queueMicrotask(() => virtualizer.measureElement(el))}
+                          class={styles['line-expanded']}
+                          style={{
+                            transform: `translateY(${vItem.start}px)`,
+                          }}
+                        >
+                          <div
+                            class={`${styles['line-expanded-header']} ${isHighlight() ? styles['highlight-line'] : ''}`}
+                            onClick={() => toggleLine(lineNum)}
+                          >
+                            <span class={styles['line-num']}>
+                              {lineNum + 1}
+                            </span>
+                            <span
+                              class={`${styles['type-badge']} ${badgeClass(summary().type)}`}
+                            >
+                              {summary().type || '?'}
+                            </span>
+                            <span class={styles['line-uuid']}>
+                              {summary().uuid
+                                ? summary().uuid.slice(0, 8)
+                                : ''}
+                            </span>
+                            <span class={styles['line-timestamp']}>
+                              {formatTimestamp(summary().timestamp)}
+                            </span>
+                          </div>
+                          <div class={styles['line-expanded-body']}>
+                            <ExpandedJson raw={content()} />
+                          </div>
+                        </div>
+                      </Show>
+                    )
+                  }}
+                </Show>
+              )
+            }}
+          </For>
+        </div>
+      </div>
     </div>
+  )
+}
+
+function ExpandedJson(props: { raw: string }) {
+  const parsed = () => {
+    try {
+      return JSON.parse(props.raw)
+    } catch {
+      return null
+    }
+  }
+
+  return (
+    <Show
+      when={parsed()}
+      fallback={<pre style={{ margin: 0, 'white-space': 'pre-wrap' }}>{props.raw}</pre>}
+    >
+      {(val) => <JsonTree value={val()} defaultExpandDepth={1} />}
+    </Show>
   )
 }

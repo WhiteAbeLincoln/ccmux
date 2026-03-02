@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@solidjs/router": "^0.15.4",
+    "@tanstack/solid-virtual": "^3.13.19",
     "marked": "^17.0.3",
     "shiki": "^4.0.0",
     "solid-js": "^1.9.5"

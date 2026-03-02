@@ -8,7 +8,7 @@ export default function Layout(props: RouteSectionProps) {
       <nav class={styles.nav}>
         <ThemeToggle />
       </nav>
-      <main>{props.children}</main>
+      <main class={styles.main}>{props.children}</main>
     </>
   )
 }

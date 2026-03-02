@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use async_graphql::{Context, Object, Result};
 
-use super::types::{event_to_message, Session, SessionMessage};
+use super::types::{event_to_message, Session, SessionLogLine, SessionLogLines, SessionMessage};
 use crate::session::loader;
 
 pub struct Query;
@@ -63,6 +63,40 @@ impl Query {
             .map_err(|e| async_graphql::Error::new(e.to_string()))?;
 
         Ok(Some(content))
+    }
+
+    /// Fetch a range of raw JSONL lines from a session file.
+    async fn session_log_lines(
+        &self,
+        ctx: &Context<'_>,
+        id: String,
+        offset: i32,
+        limit: i32,
+    ) -> Result<Option<SessionLogLines>> {
+        let base_path = ctx.data::<PathBuf>()?;
+        let sessions = loader::discover_sessions(base_path)
+            .map_err(|e| async_graphql::Error::new(e.to_string()))?;
+
+        let Some(session_info) = sessions.iter().find(|s| s.id == id) else {
+            return Ok(None);
+        };
+
+        let (raw_lines, total) =
+            loader::load_session_lines(&session_info.path, offset as usize, limit as usize)
+                .map_err(|e| async_graphql::Error::new(e.to_string()))?;
+
+        let lines = raw_lines
+            .into_iter()
+            .map(|(num, content)| SessionLogLine {
+                line_number: num as i32,
+                content,
+            })
+            .collect();
+
+        Ok(Some(SessionLogLines {
+            lines,
+            total_lines: total as i32,
+        }))
     }
 
     /// Load a full session by ID, returning all messages.

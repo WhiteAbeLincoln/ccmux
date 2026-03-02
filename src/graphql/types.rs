@@ -4,6 +4,20 @@ use serde_json::Value;
 
 use crate::session::types as st;
 
+// --- Session log lines (paginated) ---
+
+#[derive(SimpleObject)]
+pub struct SessionLogLine {
+    pub line_number: i32,
+    pub content: String,
+}
+
+#[derive(SimpleObject)]
+pub struct SessionLogLines {
+    pub lines: Vec<SessionLogLine>,
+    pub total_lines: i32,
+}
+
 // --- Session ---
 
 #[derive(SimpleObject)]
