@@ -6,28 +6,6 @@
     font-size: 1.5rem;
     margin-bottom: 1rem;
   }
-
-  & table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-left: 1rem;
-    width: calc(100% - 1rem);
-  }
-
-  & th {
-    text-align: left;
-    padding: 0.35rem 0.5rem;
-    border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent);
-    font-size: 0.75rem;
-    opacity: 0.45;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  & td {
-    padding: 0.35rem 0.5rem;
-    border-bottom: 1px solid color-mix(in srgb, currentColor 8%, transparent);
-  }
 }
 
 .status {
@@ -88,18 +66,14 @@ a.group-name:hover {
   font-variant-numeric: tabular-nums;
 }
 
-.th-summary {
-  width: 100%;
-}
-
-.th-msgs,
-.th-date {
-  white-space: nowrap;
+.session-rows {
+  margin-left: 1rem;
 }
 
 .session-row {
+  padding: 0.5rem 0.5rem;
   cursor: pointer;
-  transition: background-color 0.15s;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 8%, transparent);
 }
 
 .session-row:hover {
@@ -110,17 +84,20 @@ a.group-name:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 0;
-  width: 100%;
+}
+
+.row-meta {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  opacity: 0.45;
 }
 
 .count {
-  text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
 .date {
-  font-size: 0.85rem;
-  opacity: 0.55;
   white-space: nowrap;
 }

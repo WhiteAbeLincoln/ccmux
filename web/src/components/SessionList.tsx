@@ -101,31 +101,24 @@ export default function SessionList() {
                   <span class={styles['group-count']}>{group.sessions.length}</span>
                 </button>
                 <Show when={!collapsed().has(group.project)}>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th class={styles['th-summary']}>Summary</th>
-                        <th class={styles['th-msgs']}>Msgs</th>
-                        <th class={styles['th-date']}>Updated</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <For each={group.sessions}>
-                        {(session) => (
-                          <tr
-                            class={styles['session-row']}
-                            onClick={() => navigate(`/session/${session.id}`)}
-                          >
-                            <td class={styles.summary}>
-                              {session.firstMessage ?? session.slug ?? '\u2014'}
-                            </td>
-                            <td class={styles.count}>{session.messageCount}</td>
-                            <td class={styles.date}>{formatDate(session.updatedAt)}</td>
-                          </tr>
-                        )}
-                      </For>
-                    </tbody>
-                  </table>
+                  <div class={styles['session-rows']}>
+                    <For each={group.sessions}>
+                      {(session) => (
+                        <div
+                          class={styles['session-row']}
+                          onClick={() => navigate(`/session/${session.id}`)}
+                        >
+                          <div class={styles.summary}>
+                            {session.firstMessage ?? session.slug ?? '\u2014'}
+                          </div>
+                          <div class={styles['row-meta']}>
+                            <span class={styles.date}>{formatDate(session.updatedAt)}</span>
+                            <span class={styles.count}>{session.messageCount} msgs</span>
+                          </div>
+                        </div>
+                      )}
+                    </For>
+                  </div>
                 </Show>
               </div>
             )}
