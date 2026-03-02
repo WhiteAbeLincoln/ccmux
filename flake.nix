@@ -44,6 +44,30 @@
           // {
             inherit cargoArtifacts;
           });
+
+        rodney = pkgs.buildGoModule {
+          pname = "rodney";
+          version = "0.4.0";
+
+          src = pkgs.fetchFromGitHub {
+            owner = "simonw";
+            repo = "rodney";
+            rev = "9e7ae93900bcb5316d02623706bc8861feec836f";
+            hash = "sha256-/iGsaMfK8zeUkTXwU63mAAb4VpsllG87EH8ycoFZs5k=";
+          };
+
+          vendorHash = "sha256-h4U43W3hLoF+p25/jNRaW8okeEzAZQEmKtwB5l4kGW4=";
+
+          # Tests require a running Chrome instance
+          doCheck = false;
+
+          # Remove --single-process flag that crashes on macOS
+          # https://github.com/simonw/rodney/issues/9
+          postPatch = ''
+            substituteInPlace main.go \
+              --replace-fail 'Set("single-process").' ""
+          '';
+        };
       in {
         checks = {
           crate = cclog-server;
@@ -69,7 +93,7 @@
         devShells.default = craneLib.devShell {
           checks = self.checks.${system};
           # TODO: move to the web-server app
-          packages = [pkgs.bun];
+          packages = [pkgs.bun rodney];
         };
       }
     );
