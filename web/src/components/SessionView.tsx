@@ -2,7 +2,25 @@ import { createSignal, createResource, createMemo, For, Show, Switch, Match } fr
 import { useParams, useNavigate, A } from '@solidjs/router'
 import { query } from '../lib/graphql'
 import { marked } from 'marked'
+import { createHighlighter, type Highlighter } from 'shiki'
 import type { SessionMessage, ContentBlock, ToolUseBlock } from '../lib/types'
+
+// eslint-disable-next-line no-control-regex
+const ANSI_RE = /\x1b\[[0-9;]*[A-Za-z]/g
+function stripAnsi(s: string): string {
+  return s.replace(ANSI_RE, '')
+}
+
+let _highlighter: Promise<Highlighter> | null = null
+function getHighlighter(): Promise<Highlighter> {
+  if (!_highlighter) {
+    _highlighter = createHighlighter({
+      themes: ['vitesse-dark', 'vitesse-light'],
+      langs: ['bash'],
+    })
+  }
+  return _highlighter
+}
 import styles from './SessionView.module.css'
 
 const SESSION_QUERY = `query ($id: String!) {
@@ -33,6 +51,7 @@ type DisplayItem =
   | { kind: 'assistant'; msg: SessionMessage }
   | { kind: 'ask-user-question'; msg: SessionMessage }
   | { kind: 'exit-plan-mode'; msg: SessionMessage }
+  | { kind: 'bash'; msg: SessionMessage }
   | { kind: 'internal-group'; key: string; steps: string[]; tokens: number; msgs: SessionMessage[] }
   | { kind: 'system'; msg: SessionMessage }
 
@@ -206,6 +225,25 @@ function AskUserQuestionView(props: {
   )
 }
 
+function HighlightedBash(props: { code: string }) {
+  const [html] = createResource(
+    () => props.code,
+    async (code) => {
+      const hl = await getHighlighter()
+      return hl.codeToHtml(code, {
+        lang: 'bash',
+        themes: { dark: 'vitesse-dark', light: 'vitesse-light' },
+        defaultColor: false,
+      })
+    },
+  )
+  return (
+    <Show when={html()} fallback={<pre class={styles['bash-command']}><code>{props.code}</code></pre>}>
+      {(h) => <div class={styles['bash-command']} innerHTML={h()} />}
+    </Show>
+  )
+}
+
 // --- Main component ---
 
 export default function SessionView() {
@@ -269,6 +307,9 @@ export default function SessionView() {
         } else if (getToolUseBlock(m, 'ExitPlanMode')) {
           flushInternal()
           items.push({ kind: 'exit-plan-mode', msg: m })
+        } else if (getToolUseBlock(m, 'Bash')) {
+          flushInternal()
+          items.push({ kind: 'bash', msg: m })
         } else {
           internalAcc.push(m)
         }
@@ -479,6 +520,51 @@ export default function SessionView() {
                                 </button>
                                 <Show when={expanded().has(outputKey)}>
                                   <pre class={styles['plan-output-content']}>{r().content}</pre>
+                                </Show>
+                              </div>
+                            )}
+                          </Show>
+                        </div>
+                      )
+                    }}
+                  </Match>
+
+                  {/* Bash block */}
+                  <Match
+                    when={
+                      item.kind === 'bash' &&
+                      (item as DisplayItem & { kind: 'bash' })
+                    }
+                  >
+                    {(i) => {
+                      const msg = i().msg
+                      const block = getToolUseBlock(msg, 'Bash')!
+                      const input = block.input as { command?: string; description?: string }
+                      const command = input.command ?? ''
+                      const description = input.description ?? ''
+                      const result = toolResults().get(block.id)
+                      const outputKey = `${msg.uuid}-bash-output`
+                      return (
+                        <div class={`${styles.message} ${styles.bash}`} data-role="bash">
+                          <div class={styles['bash-header']}>
+                            <span class={styles['bash-prompt']}>$</span>
+                            <span class={styles['bash-desc']}>{description}</span>
+                            <Show when={result?.isError}>
+                              <span class={styles['error-badge']}>error</span>
+                            </Show>
+                          </div>
+                          <HighlightedBash code={command} />
+                          <Show when={result}>
+                            {(r) => (
+                              <div class={styles['bash-output-section']}>
+                                <button class={styles.toggle} onClick={() => toggle(outputKey)}>
+                                  {expanded().has(outputKey) ? '\u25BE' : '\u25B8'} Output
+                                </button>
+                                <Show when={expanded().has(outputKey)}>
+                                  <pre
+                                    class={styles['bash-output']}
+                                    classList={{ [styles['is-error']]: !!r().isError }}
+                                  >{stripAnsi(r().content)}</pre>
                                 </Show>
                               </div>
                             )}
