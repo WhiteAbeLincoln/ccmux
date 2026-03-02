@@ -2,7 +2,9 @@ use std::path::PathBuf;
 
 use async_graphql::{Context, Object, Result};
 
-use super::types::{event_to_message, Session, SessionLogLine, SessionLogLines, SessionMessage};
+use super::types::{
+    event_to_message, AgentMapping, Session, SessionLogLine, SessionLogLines, SessionMessage,
+};
 use crate::session::loader;
 
 pub struct Query;
@@ -22,8 +24,9 @@ impl Query {
         let sessions: Vec<Session> = sessions
             .iter()
             .filter(|s| {
-                // Hide sessions with no user messages (e.g. file-history-snapshot only)
+                // Hide sessions with no user messages and sidechain/subagent sessions
                 s.first_message.is_some()
+                    && !s.is_sidechain
                     && project
                         .as_ref()
                         .map_or(true, |p| s.project.contains(p.as_str()))
@@ -99,6 +102,32 @@ impl Query {
             lines,
             total_lines: total as i32,
         }))
+    }
+
+    /// Get the mapping from tool_use_id to agent_id for subagent calls in a session.
+    async fn session_agent_map(
+        &self,
+        ctx: &Context<'_>,
+        id: String,
+    ) -> Result<Vec<AgentMapping>> {
+        let base_path = ctx.data::<PathBuf>()?;
+        let sessions = loader::discover_sessions(base_path)
+            .map_err(|e| async_graphql::Error::new(e.to_string()))?;
+
+        let Some(session_info) = sessions.iter().find(|s| s.id == id) else {
+            return Ok(vec![]);
+        };
+
+        let mappings = loader::extract_agent_map(&session_info.path)
+            .map_err(|e| async_graphql::Error::new(e.to_string()))?;
+
+        Ok(mappings
+            .into_iter()
+            .map(|(tool_use_id, agent_id)| AgentMapping {
+                tool_use_id,
+                agent_id,
+            })
+            .collect())
     }
 
     /// Load a full session by ID, returning all messages.

@@ -32,6 +32,15 @@ pub struct Session {
     pub project_path: Option<String>,
     /// Absolute path to the session's .jsonl file on disk.
     pub file_path: Option<String>,
+    pub is_sidechain: bool,
+    pub parent_session_id: Option<String>,
+    pub agent_id: Option<String>,
+}
+
+#[derive(SimpleObject)]
+pub struct AgentMapping {
+    pub tool_use_id: String,
+    pub agent_id: String,
 }
 
 // --- Session messages ---
@@ -175,6 +184,9 @@ impl From<&crate::session::loader::SessionInfo> for Session {
             first_message: s.first_message.clone(),
             project_path: s.project_path.clone(),
             file_path: Some(s.path.to_string_lossy().into_owned()),
+            is_sidechain: s.is_sidechain,
+            parent_session_id: s.parent_session_id.clone(),
+            agent_id: s.agent_id.clone(),
         }
     }
 }

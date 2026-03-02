@@ -23,6 +23,16 @@ function getHighlighter(): Promise<Highlighter> {
 }
 import styles from './SessionView.module.css'
 
+const SESSION_INFO_QUERY = `query ($id: String!) {
+  sessionInfo(id: $id) {
+    id isSidechain parentSessionId agentId firstMessage
+  }
+}`
+
+const AGENT_MAP_QUERY = `query ($id: String!) {
+  sessionAgentMap(id: $id) { toolUseId agentId }
+}`
+
 const SESSION_QUERY = `query ($id: String!) {
   session(id: $id) {
     uuid parentUuid timestamp eventType
@@ -52,6 +62,7 @@ type DisplayItem =
   | { kind: 'ask-user-question'; msg: SessionMessage }
   | { kind: 'exit-plan-mode'; msg: SessionMessage }
   | { kind: 'bash'; msg: SessionMessage }
+  | { kind: 'agent'; msg: SessionMessage }
   | { kind: 'internal-group'; key: string; steps: string[]; tokens: number; msgs: SessionMessage[] }
   | { kind: 'system'; msg: SessionMessage }
 
@@ -103,6 +114,10 @@ function getToolUseBlock(msg: SessionMessage, name: string): ToolUseBlock | null
       (b): b is ToolUseBlock => b.__typename === 'ToolUseBlock' && b.name === name,
     ) as ToolUseBlock) ?? null
   )
+}
+
+function getAgentBlock(msg: SessionMessage): ToolUseBlock | null {
+  return getToolUseBlock(msg, 'Task') ?? getToolUseBlock(msg, 'Agent')
 }
 
 function parseAskUserAnswers(resultContent: string): Map<string, string> {
@@ -250,6 +265,22 @@ export default function SessionView() {
   const params = useParams<{ id: string }>()
   const navigate = useNavigate()
 
+  interface SessionInfoData {
+    id: string
+    isSidechain: boolean
+    parentSessionId: string | null
+    agentId: string | null
+    firstMessage: string | null
+  }
+
+  const [sessionInfo] = createResource(
+    () => params.id,
+    async (id) => {
+      const data = await query<{ sessionInfo: SessionInfoData | null }>(SESSION_INFO_QUERY, { id })
+      return data.sessionInfo
+    },
+  )
+
   const [messages] = createResource(
     () => params.id,
     async (id) => {
@@ -257,6 +288,24 @@ export default function SessionView() {
       return data.session ?? []
     },
   )
+
+  const [agentMapRaw] = createResource(
+    () => params.id,
+    async (id) => {
+      const data = await query<{
+        sessionAgentMap: { toolUseId: string; agentId: string }[]
+      }>(AGENT_MAP_QUERY, { id })
+      return data.sessionAgentMap ?? []
+    },
+  )
+
+  const agentMap = createMemo(() => {
+    const map = new Map<string, string>()
+    for (const m of agentMapRaw() ?? []) {
+      map.set(m.toolUseId, m.agentId)
+    }
+    return map
+  })
 
   const toolResults = createMemo(() => {
     const map = new Map<string, { content: string; isError: boolean | null }>()
@@ -310,6 +359,9 @@ export default function SessionView() {
         } else if (getToolUseBlock(m, 'Bash')) {
           flushInternal()
           items.push({ kind: 'bash', msg: m })
+        } else if (getAgentBlock(m)) {
+          flushInternal()
+          items.push({ kind: 'agent', msg: m })
         } else {
           internalAcc.push(m)
         }
@@ -377,13 +429,57 @@ export default function SessionView() {
   return (
     <div class={styles['session-view']}>
       <header>
-        <button onClick={() => navigate('/')}>&larr; Back</button>
+        <Show when={sessionInfo()?.isSidechain && sessionInfo()?.parentSessionId}>
+          <button onClick={() => navigate(`/session/${sessionInfo()!.parentSessionId}`)}>&larr; Parent</button>
+        </Show>
+        <Show when={!sessionInfo()?.isSidechain}>
+          <button onClick={() => navigate('/')}>&larr; Back</button>
+        </Show>
         <h1>
           <A class={styles['session-link']} href={`/session/${params.id}/raw`}>
-            Session {params.id.slice(0, 8)}
+            <Show when={sessionInfo()?.isSidechain} fallback={<>Session {params.id.slice(0, 8)}</>}>
+              Subagent {params.id.replace('agent-', '').slice(0, 8)}
+            </Show>
           </A>
         </h1>
       </header>
+
+      <Show when={sessionInfo()?.isSidechain}>
+        {(_) => {
+          const info = sessionInfo()!
+          const lastAssistantText = createMemo(() => {
+            const msgs = messages() ?? []
+            for (let j = msgs.length - 1; j >= 0; j--) {
+              const m = msgs[j]
+              if (m.assistantContent) {
+                for (const b of m.assistantContent.blocks) {
+                  if (b.__typename === 'TextBlock') return b.text
+                }
+              }
+            }
+            return null
+          })
+          return (
+            <div class={styles['subagent-header']} data-role="subagent-header">
+              <div class={styles['subagent-section']}>
+                <div class={styles['subagent-label']}>Prompt</div>
+                <div class={styles['subagent-text']}>{info.firstMessage}</div>
+              </div>
+              <Show when={lastAssistantText()}>
+                {(text) => (
+                  <div class={styles['subagent-section']}>
+                    <div class={styles['subagent-label']}>Output</div>
+                    <div
+                      class={`${styles['subagent-text']} ${styles.prose}`}
+                      innerHTML={marked.parse(truncate(text(), 3000)) as string}
+                    />
+                  </div>
+                )}
+              </Show>
+            </div>
+          )
+        }}
+      </Show>
 
       <Switch>
         <Match when={messages.loading}>
@@ -568,6 +664,86 @@ export default function SessionView() {
                                 </Show>
                               </div>
                             )}
+                          </Show>
+                        </div>
+                      )
+                    }}
+                  </Match>
+
+                  {/* Agent/Task block */}
+                  <Match
+                    when={
+                      item.kind === 'agent' &&
+                      (item as DisplayItem & { kind: 'agent' })
+                    }
+                  >
+                    {(i) => {
+                      const msg = i().msg
+                      const block = getAgentBlock(msg)!
+                      const input = block.input as {
+                        description?: string
+                        prompt?: string
+                        subagent_type?: string
+                      }
+                      const description = input.description ?? ''
+                      const subagentType = input.subagent_type ?? ''
+                      const result = toolResults().get(block.id)
+                      const agentId = () => agentMap().get(block.id)
+                      const key = `${msg.uuid}-agent`
+                      const outputKey = `${msg.uuid}-agent-output`
+                      return (
+                        <div
+                          class={styles['internal-single']}
+                          classList={{
+                            [styles['tool-block']]: true,
+                            [styles['is-expanded']]: expanded().has(key),
+                          }}
+                          data-role="agent"
+                        >
+                          <button
+                            class={styles['internal-toggle']}
+                            onClick={() => toggle(key)}
+                          >
+                            <span class={styles.caret}>
+                              {expanded().has(key) ? '\u25BE' : '\u25B8'}
+                            </span>
+                            <span class={styles['internal-steps']}>
+                              <span class={styles.step}>Agent</span>
+                              <Show when={subagentType}>
+                                <span class={styles['step-dot']}>&middot;</span>
+                                <span class={styles.step}>{subagentType}</span>
+                              </Show>
+                              <span class={styles['step-dot']}>&middot;</span>
+                              <span class={styles.step}>{description}</span>
+                            </span>
+                          </button>
+                          <Show when={expanded().has(key)}>
+                            <div class={styles['agent-expanded']}>
+                              <Show when={agentId()}>
+                                {(aid) => (
+                                  <A
+                                    class={styles['agent-link']}
+                                    href={`/session/agent-${aid()}`}
+                                  >
+                                    View subagent session &rarr;
+                                  </A>
+                                )}
+                              </Show>
+                              <Show when={result}>
+                                {(r) => (
+                                  <div class={styles['agent-output-section']}>
+                                    <button class={styles.toggle} onClick={() => toggle(outputKey)}>
+                                      {expanded().has(outputKey) ? '\u25BE' : '\u25B8'} Output
+                                    </button>
+                                    <Show when={expanded().has(outputKey)}>
+                                      <pre class={styles['agent-output']}>
+                                        {truncate(r().content, 5000)}
+                                      </pre>
+                                    </Show>
+                                  </div>
+                                )}
+                              </Show>
+                            </div>
                           </Show>
                         </div>
                       )

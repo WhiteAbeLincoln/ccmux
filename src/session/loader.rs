@@ -17,6 +17,12 @@ pub struct SessionInfo {
     pub first_message: Option<String>,
     /// The real project directory path, extracted from the `cwd` field in events.
     pub project_path: Option<String>,
+    /// True if this is a subagent/sidechain session.
+    pub is_sidechain: bool,
+    /// For sidechain sessions, the parent session ID.
+    pub parent_session_id: Option<String>,
+    /// For sidechain sessions, the agent ID.
+    pub agent_id: Option<String>,
 }
 
 /// Discover all session JSONL files under the Claude projects directory.
@@ -55,6 +61,7 @@ pub fn discover_sessions(base_path: &Path) -> std::io::Result<Vec<SessionInfo>> 
             // Quick scan: read a few lines to extract metadata
             match scan_session_metadata(&file_path) {
                 Ok(meta) => {
+                    let sid = session_id.clone();
                     sessions.push(SessionInfo {
                         id: session_id,
                         project: project_name.clone(),
@@ -65,7 +72,54 @@ pub fn discover_sessions(base_path: &Path) -> std::io::Result<Vec<SessionInfo>> 
                         message_count: meta.line_count,
                         first_message: meta.first_message,
                         project_path: meta.project_path,
+                        is_sidechain: false,
+                        parent_session_id: None,
+                        agent_id: None,
                     });
+
+                    // Scan for subagent sessions in <session-id>/subagents/
+                    let subagents_dir = project_path.join(&sid).join("subagents");
+                    if subagents_dir.is_dir() {
+                        if let Ok(entries) = std::fs::read_dir(&subagents_dir) {
+                            for entry in entries.flatten() {
+                                let path = entry.path();
+                                if path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
+                                    continue;
+                                }
+                                let stem = path
+                                    .file_stem()
+                                    .and_then(|s| s.to_str())
+                                    .unwrap_or("")
+                                    .to_string();
+                                // Extract agentId from filename: "agent-<agentId>"
+                                let agent_id = stem.strip_prefix("agent-").map(|s| s.to_string());
+                                match scan_session_metadata(&path) {
+                                    Ok(sub_meta) => {
+                                        sessions.push(SessionInfo {
+                                            id: stem.clone(),
+                                            project: project_name.clone(),
+                                            path,
+                                            slug: sub_meta.slug,
+                                            created_at: sub_meta.first_timestamp,
+                                            updated_at: sub_meta.last_timestamp,
+                                            message_count: sub_meta.line_count,
+                                            first_message: sub_meta.first_message,
+                                            project_path: sub_meta.project_path,
+                                            is_sidechain: true,
+                                            parent_session_id: Some(sid.clone()),
+                                            agent_id,
+                                        });
+                                    }
+                                    Err(e) => {
+                                        eprintln!(
+                                            "Warning: failed to scan subagent {}: {e}",
+                                            stem
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 Err(e) => {
                     eprintln!("Warning: failed to scan {}: {e}", file_path.display());
@@ -218,6 +272,34 @@ pub fn load_session_lines(
     }
 
     Ok((lines_out, total))
+}
+
+/// Extract agent mappings (parentToolUseID -> agentId) from progress events.
+pub fn extract_agent_map(path: &Path) -> std::io::Result<Vec<(String, String)>> {
+    use std::io::BufRead;
+    let file = std::fs::File::open(path)?;
+    let reader = std::io::BufReader::new(file);
+
+    let mut seen = std::collections::HashSet::new();
+    let mut mappings = Vec::new();
+
+    for line in reader.lines() {
+        let line = line?;
+        if !line.contains("\"agent_progress\"") {
+            continue;
+        }
+        // Extract parentToolUseID and agentId
+        if let (Some(parent_id), Some(agent_id)) = (
+            extract_json_string(&line, "parentToolUseID"),
+            extract_json_string(&line, "agentId"),
+        ) {
+            if seen.insert(parent_id.clone()) {
+                mappings.push((parent_id, agent_id));
+            }
+        }
+    }
+
+    Ok(mappings)
 }
 
 /// Load all events from a session JSONL file.
