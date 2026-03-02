@@ -1,43 +1,64 @@
-# ccmux
+# unnamed claude code log utility
 
-Provides:
-- A viewer for claude code session logs
-  - Browse and search sessions
-  - Provides an interactive web ui: navigate through subagent sessions, thinking traces, tool calls and responses
-  - Export sessions as markdown. Optionally include full tool calls, subagent sessions, thinking traces, and more
-  - Resume sessions, picking up where you left off
-- A claude code session manager with the following features:
-  - Remote control, with both full terminal access and a simplified chat interface
-  - Voice control, allowing claude to respond with voice and accept voice commands
-  - Project management and sandboxing. Restrict claude's access to the filesystem, provide cli tools for projects using nix, and more
-  - Drives the Claude Code client in a virtual TTY - you won't get banned for using a custom client!
+A session inspector and explorer for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Browse your session logs with a structured, interactive web UI that makes it easy to understand what happened during a coding session.
+
+## Features
+
+- **Session browser** — sessions grouped by project, sorted by recency, with message counts
+- **Structured message rendering** — user messages, assistant responses, questions, plans, and system events each get their own visual treatment
+- **Syntax-highlighted bash** — shell commands rendered with full syntax highlighting, collapsible output, and error badges
+- **Image preview** — Read tool calls that return screenshots or images render inline instead of showing raw base64
+- **Collapsible tool calls** — thinking traces, file reads, edits, searches, and other tool calls collapse into compact summaries with token counts
+- **Subagent navigation** — agent tool calls link to their subagent sessions; subagent views show prompt and output summaries
+- **Token usage** — every message and tool call shows its token cost
+- **Raw log access** — every block links to its raw JSONL entry for debugging
+
+## Screenshots
+
+### Session List
+<img alt="Session list grouped by project" src="./_assets/session-list.png" width="700" />
+
+### Session View
+<img alt="Session view with bash blocks and tool calls" src="./_assets/session-view.png" width="700" />
+
+### Bash Tool Blocks
+<img alt="Bash blocks with syntax highlighting and error badges" src="./_assets/bash-blocks.png" width="700" />
+
+### Read Tool Image Preview
+<img alt="Read tool rendering a screenshot as an inline image" src="./_assets/read-image-preview.png" width="700" />
+
+### Question Block
+<img alt="Question block with question and answer" src="./_assets/question-block.png" width="700" />
+
+### Raw Log Viewer
+<img alt="Raw log viewer showing JSONL entries" src="./_assets/raw-logs.png" width="700" />
 
 ## Architecture
 
-### Nix
-
-Used for development and deployment.
-Provides a consistent environment across all platforms and makes it easy to manage dependencies.
-A nix flake is provided with outputs for the web client and the backend server.
-
 ### Server
 
-A Rust application which serves the GraphQL API and the SPA web interface.
-Watches .jsonl log files for changes and updates the GraphQL API accordingly.
+Rust application serving a GraphQL API and the SPA web interface. Watches `.jsonl` log files for changes and updates the API accordingly.
 
 ### Web Client
 
-A responsive Single Page Application built with TypeScript and Svelte.
-Uses ghostty-web for terminal emulation when controlling a claude-code session.
-Uses bun instead of node for development.
+Single Page Application built with TypeScript and SolidJS. Uses Shiki for bash syntax highlighting. Built with Vite; uses Bun for development.
 
-### iOS Client
+### Nix
 
-A native iOS application built with Swift and SwiftUI.
+A nix flake provides a dev shell and build outputs for both the server and web client.
 
-## TODO
+## Development
 
-- Compaction summaries are displayed as user messages
-- Bash tool calls should be syntax highlighted and include their responses
-- Edit tool calls should look like a git diff
-- Subagent sessions are treated as regular sessions; should instead be collapsed under the parent session and linked in the main conversation
+```
+cargo run          # backend on :3001
+cd web && bun dev  # frontend on :5173
+```
+
+## Future
+
+- Export sessions as markdown with configurable detail level
+- Edit tool calls rendered as diffs
+- Session search and filtering
+- Remote session control with terminal access
+- Voice interface
+- iOS client
