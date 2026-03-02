@@ -32,6 +32,7 @@ type DisplayItem =
   | { kind: 'user'; msg: SessionMessage }
   | { kind: 'assistant'; msg: SessionMessage }
   | { kind: 'ask-user-question'; msg: SessionMessage }
+  | { kind: 'exit-plan-mode'; msg: SessionMessage }
   | { kind: 'internal-group'; key: string; steps: string[]; tokens: number; msgs: SessionMessage[] }
   | { kind: 'system'; msg: SessionMessage }
 
@@ -76,11 +77,11 @@ interface AskUserQuestion {
   multiSelect: boolean
 }
 
-function getAskUserQuestionBlock(msg: SessionMessage): ToolUseBlock | null {
+function getToolUseBlock(msg: SessionMessage, name: string): ToolUseBlock | null {
   if (!msg.assistantContent) return null
   return (
     (msg.assistantContent.blocks.find(
-      (b): b is ToolUseBlock => b.__typename === 'ToolUseBlock' && b.name === 'AskUserQuestion',
+      (b): b is ToolUseBlock => b.__typename === 'ToolUseBlock' && b.name === name,
     ) as ToolUseBlock) ?? null
   )
 }
@@ -262,9 +263,12 @@ export default function SessionView() {
         if (hasUserFacingText(m)) {
           flushInternal()
           items.push({ kind: 'assistant', msg: m })
-        } else if (getAskUserQuestionBlock(m)) {
+        } else if (getToolUseBlock(m, 'AskUserQuestion')) {
           flushInternal()
           items.push({ kind: 'ask-user-question', msg: m })
+        } else if (getToolUseBlock(m, 'ExitPlanMode')) {
+          flushInternal()
+          items.push({ kind: 'exit-plan-mode', msg: m })
         } else {
           internalAcc.push(m)
         }
@@ -417,7 +421,7 @@ export default function SessionView() {
                   >
                     {(i) => {
                       const msg = i().msg
-                      const block = getAskUserQuestionBlock(msg)!
+                      const block = getToolUseBlock(msg, 'AskUserQuestion')!
                       const input = block.input as { questions?: AskUserQuestion[] }
                       const questions = input.questions ?? []
                       const result = toolResults().get(block.id)
@@ -431,6 +435,54 @@ export default function SessionView() {
                             </A>
                           </div>
                           <AskUserQuestionView questions={questions} answers={answers} />
+                        </div>
+                      )
+                    }}
+                  </Match>
+
+                  {/* ExitPlanMode block */}
+                  <Match
+                    when={
+                      item.kind === 'exit-plan-mode' &&
+                      (item as DisplayItem & { kind: 'exit-plan-mode' })
+                    }
+                  >
+                    {(i) => {
+                      const msg = i().msg
+                      const block = getToolUseBlock(msg, 'ExitPlanMode')!
+                      const plan = (block.input as { plan?: string }).plan ?? ''
+                      const result = toolResults().get(block.id)
+                      const outputKey = `${msg.uuid}-plan-output`
+                      return (
+                        <div class={`${styles.message} ${styles['exit-plan-mode']}`} data-role="exit-plan-mode">
+                          <div class={styles.meta}>
+                            <span class={styles['role-label']}>Plan</span>
+                            <A class={styles.uuid} href={`/session/${params.id}/raw?uuid=${msg.uuid}`}>
+                              {msg.uuid.slice(0, 8)}
+                            </A>
+                          </div>
+                          <div
+                            class={`${styles['plan-content']} ${styles.prose}`}
+                            innerHTML={marked.parse(plan) as string}
+                          />
+                          <Show when={result}>
+                            {(r) => (
+                              <div class={styles['plan-output']}>
+                                <button class={styles.toggle} onClick={() => toggle(outputKey)}>
+                                  {expanded().has(outputKey) ? '\u25BE' : '\u25B8'} Output
+                                  <Show when={r().content.includes('rejected')}>
+                                    <span class={styles['error-badge']}>rejected</span>
+                                  </Show>
+                                  <Show when={!r().content.includes('rejected')}>
+                                    <span class={styles['ok-badge']}>accepted</span>
+                                  </Show>
+                                </button>
+                                <Show when={expanded().has(outputKey)}>
+                                  <pre class={styles['plan-output-content']}>{r().content}</pre>
+                                </Show>
+                              </div>
+                            )}
+                          </Show>
                         </div>
                       )
                     }}
