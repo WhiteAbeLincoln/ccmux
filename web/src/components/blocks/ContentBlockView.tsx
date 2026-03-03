@@ -6,6 +6,8 @@ import type { SessionMessage, ContentBlock } from '../../lib/types'
 import ThinkingBlockView from './ThinkingBlockView'
 import ToolUseBlockView from './ToolUseBlockView'
 import ReadBlockView from './ReadBlockView'
+import EditBlockView from './EditBlockView'
+import WriteBlockView from './WriteBlockView'
 import styles from '../SessionView.module.css'
 
 export default function ContentBlockView(props: {
@@ -49,6 +51,38 @@ export default function ContentBlockView(props: {
       return (
         <div class={styles.block}>
           <ReadBlockView
+            blockKey={key}
+            input={props.block.input}
+            result={result}
+            sessionId={props.sessionId}
+            uuid={props.msg.uuid}
+            expanded={props.expanded}
+            toggle={props.toggle}
+            tokens={props.tokens}
+          />
+        </div>
+      )
+    }
+    if (props.block.name === 'Edit') {
+      return (
+        <div class={styles.block}>
+          <EditBlockView
+            blockKey={key}
+            input={props.block.input}
+            result={result}
+            sessionId={props.sessionId}
+            uuid={props.msg.uuid}
+            expanded={props.expanded}
+            toggle={props.toggle}
+            tokens={props.tokens}
+          />
+        </div>
+      )
+    }
+    if (props.block.name === 'Write') {
+      return (
+        <div class={styles.block}>
+          <WriteBlockView
             blockKey={key}
             input={props.block.input}
             result={result}

@@ -15,7 +15,7 @@ export default function CollapsibleBlock(props: ParentProps<{
   tokens?: number
 }>) {
   return (
-    <div class={props.class} classList={{ ...props.classList, [styles['is-expanded']]: props.expanded }} data-role={props.role}>
+    <div id={props.uuid} class={props.class} classList={{ ...props.classList, [styles['is-expanded']]: props.expanded }} data-role={props.role}>
       <button class={styles['internal-toggle']} onClick={() => props.toggle()}>
         <span class={styles.caret}>
           {props.expanded ? '\u25BE' : '\u25B8'}

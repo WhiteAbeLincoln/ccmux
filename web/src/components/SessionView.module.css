@@ -102,6 +102,16 @@
   border-radius: 4px;
 }
 
+:global(:root.light) .internal-toggle {
+  opacity: 0.55;
+}
+
+@media (prefers-color-scheme: light) {
+  :global(:root.system) .internal-toggle {
+    opacity: 0.55;
+  }
+}
+
 .internal-toggle:hover {
   opacity: 0.7;
   background: color-mix(in srgb, currentColor 4%, transparent);
@@ -459,20 +469,6 @@
   font-family: monospace;
 }
 
-.bash-command :global(.shiki span) {
-  color: var(--shiki-dark);
-}
-
-:root.light .bash-command :global(.shiki span) {
-  color: var(--shiki-light);
-}
-
-@media (prefers-color-scheme: light) {
-  :root.system .bash-command :global(.shiki span) {
-    color: var(--shiki-light);
-  }
-}
-
 .bash-output-section {
   margin-top: 0.35rem;
 }
@@ -490,6 +486,111 @@
   overflow-y: auto;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* --- Edit / Write tools --- */
+
+.tool-filepath {
+  font-size: 0.8rem;
+  opacity: 0.5;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info-badge {
+  font-size: 0.7rem;
+  background: #68a;
+  color: white;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+}
+
+.diff-block {
+  margin: 0;
+  padding: 0.5rem;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-family: monospace;
+  line-height: 1.5;
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre;
+  word-break: break-all;
+}
+
+.diff-line {
+  display: flex;
+}
+
+.diff-marker {
+  flex-shrink: 0;
+  width: 1.2em;
+  text-align: center;
+  user-select: none;
+  opacity: 0.6;
+}
+
+.diff-add {
+  background: color-mix(in srgb, #4a4 18%, transparent);
+  color: #6d6;
+}
+
+.diff-remove {
+  background: color-mix(in srgb, #e55 15%, transparent);
+  color: #e88;
+}
+
+:global(:root.light) .diff-add {
+  background: color-mix(in srgb, #2a2 12%, transparent);
+  color: #1a4a1a;
+}
+
+:global(:root.light) .diff-remove {
+  background: color-mix(in srgb, #c33 10%, transparent);
+  color: #6a1a1a;
+}
+
+@media (prefers-color-scheme: light) {
+  :global(:root.system) .diff-add {
+    background: color-mix(in srgb, #2a2 12%, transparent);
+    color: #1a4a1a;
+  }
+  :global(:root.system) .diff-remove {
+    background: color-mix(in srgb, #c33 10%, transparent);
+    color: #6a1a1a;
+  }
+}
+
+.highlighted-code {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Shiki output inside highlighted-code (same pattern as bash-command) */
+.highlighted-code :global(.shiki) {
+  margin: 0;
+  padding: 0;
+  background: transparent !important;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.highlighted-code :global(.shiki code) {
+  font-family: monospace;
 }
 
 /* --- ExitPlanMode --- */

@@ -12,7 +12,7 @@ export default function MessageBlock(props: ParentProps<{
   rightMeta?: JSX.Element
 }>) {
   return (
-    <div class={`${styles.message} ${styles[props.variant]}`} data-role={props.role}>
+    <div id={props.uuid} class={`${styles.message} ${styles[props.variant]}`} data-role={props.role}>
       <div class={styles.meta}>
         <span class={styles['role-label']}>{props.label}</span>
         {props.extraMeta}

@@ -59,3 +59,50 @@ button:hover {
   background-color: color-mix(in srgb, currentColor 14%, transparent);
   border-color: color-mix(in srgb, currentColor 30%, transparent);
 }
+
+/* Line numbers via CSS counters (opt-in with .line-numbers) */
+.line-numbers .shiki code {
+  counter-reset: line calc(var(--start-line, 1) - 1);
+}
+
+.line-numbers .shiki code .line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3.5em;
+  margin-right: 1em;
+  text-align: right;
+  opacity: 0.35;
+  user-select: none;
+}
+
+/* Plain pre fallback line numbers (no shiki) */
+.line-numbers pre {
+  counter-reset: line calc(var(--start-line, 1) - 1);
+}
+
+.line-numbers pre .line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3.5em;
+  margin-right: 1em;
+  text-align: right;
+  opacity: 0.35;
+  user-select: none;
+}
+
+/* Shiki theme: dark by default, light when light mode */
+.shiki span {
+  color: var(--shiki-dark);
+}
+
+:root.light .shiki span {
+  color: var(--shiki-light);
+}
+
+@media (prefers-color-scheme: light) {
+  :root.system .shiki span {
+    color: var(--shiki-light);
+  }
+}

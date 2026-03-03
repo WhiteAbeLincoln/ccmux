@@ -5,32 +5,14 @@ import { createResource, Show } from "solid-js";
 import { stripAnsi } from "../../lib/format";
 import type { SessionMessage } from "../../lib/types";
 import { getToolUseBlock, totalTokens } from "../../lib/session";
-import { createHighlighter, type Highlighter } from "shiki";
+import { highlightBash } from "../../lib/highlight";
 import MessageBlock from "./MessageBlock";
 import styles from "../SessionView.module.css";
-
-let _highlighter: Promise<Highlighter> | null = null;
-function getHighlighter(): Promise<Highlighter> {
-  if (!_highlighter) {
-    _highlighter = createHighlighter({
-      themes: ["vitesse-dark", "vitesse-light"],
-      langs: ["bash"],
-    });
-  }
-  return _highlighter;
-}
 
 export function HighlightedBash(props: { code: string }) {
   const [html] = createResource(
     () => props.code,
-    async (code) => {
-      const hl = await getHighlighter();
-      return hl.codeToHtml(code, {
-        lang: "bash",
-        themes: { dark: "vitesse-dark", light: "vitesse-light" },
-        defaultColor: false,
-      });
-    },
+    (code) => highlightBash(code),
   );
   return (
     <Show

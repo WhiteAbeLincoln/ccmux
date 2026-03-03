@@ -1,5 +1,5 @@
 import { createResource, createSignal, createMemo, For, Show, Switch, Match } from 'solid-js'
-import { useNavigate } from '@solidjs/router'
+import { A } from '@solidjs/router'
 import { query } from '../lib/graphql'
 import type { Session } from '../lib/types'
 import styles from './SessionList.module.css'
@@ -17,8 +17,6 @@ const SESSIONS_QUERY = `{
 }`
 
 export default function SessionList() {
-  const navigate = useNavigate()
-
   const [sessions] = createResource(async () => {
     const data = await query<{ sessions: Session[] }>(SESSIONS_QUERY)
     return data.sessions
@@ -87,26 +85,16 @@ export default function SessionList() {
                   <span class={styles.caret}>
                     {collapsed().has(group.project) ? '\u25B8' : '\u25BE'}
                   </span>
-                  {group.displayName.startsWith('/') ? (
-                    <a
-                      class={styles['group-name']}
-                      href={`file://${group.displayName}`}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {group.displayName}
-                    </a>
-                  ) : (
-                    <span class={styles['group-name']}>{group.displayName}</span>
-                  )}
+                  <span class={styles['group-name']}>{group.displayName}</span>
                   <span class={styles['group-count']}>{group.sessions.length}</span>
                 </button>
                 <Show when={!collapsed().has(group.project)}>
                   <div class={styles['session-rows']}>
                     <For each={group.sessions}>
                       {(session) => (
-                        <div
+                        <A
                           class={styles['session-row']}
-                          onClick={() => navigate(`/session/${session.id}`)}
+                          href={`/session/${session.id}`}
                         >
                           <div class={styles.summary}>
                             {session.firstMessage ?? session.slug ?? '\u2014'}
@@ -115,7 +103,7 @@ export default function SessionList() {
                             <span class={styles.date}>{formatDate(session.updatedAt)}</span>
                             <span class={styles.count}>{session.messageCount} msgs</span>
                           </div>
-                        </div>
+                        </A>
                       )}
                     </For>
                   </div>

@@ -15,6 +15,29 @@ export function truncate(s: string, max: number): string {
   return s.slice(0, max) + '...'
 }
 
+// Strip "     1→" prefixes from Read tool output.
+// Returns the starting line number and the stripped code.
+const LINE_PREFIX_RE = /^\s*(\d+)→(.*)$/
+export function stripReadLineNumbers(text: string): { startLine: number; code: string } {
+  const lines = text.split('\n')
+  let startLine = 1
+  const stripped: string[] = []
+  let foundPrefix = false
+  for (let i = 0; i < lines.length; i++) {
+    const m = LINE_PREFIX_RE.exec(lines[i])
+    if (m) {
+      if (!foundPrefix) {
+        startLine = parseInt(m[1], 10)
+        foundPrefix = true
+      }
+      stripped.push(m[2])
+    } else {
+      stripped.push(lines[i])
+    }
+  }
+  return { startLine, code: stripped.join('\n') }
+}
+
 export type ToolResultPart =
   | { type: 'text'; text: string }
   | { type: 'image'; dataUri: string }
