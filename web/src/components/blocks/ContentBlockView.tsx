@@ -1,8 +1,8 @@
 // Dispatcher that renders an individual ContentBlock (text, thinking, or tool use).
 // Used inside AssistantMessageView and InternalGroupView.
 
-import { marked } from 'marked'
 import type { SessionMessage, ContentBlock } from '../../lib/types'
+import Prose from '../Prose'
 import ThinkingBlockView from './ThinkingBlockView'
 import ToolUseBlockView from './ToolUseBlockView'
 import ReadBlockView from './ReadBlockView'
@@ -22,9 +22,9 @@ export default function ContentBlockView(props: {
 }) {
   if (props.block.__typename === 'TextBlock') {
     return (
-      <div
+      <Prose
+        text={props.block.text}
         class={`${styles.block} ${styles['text-block']} ${styles.prose}`}
-        innerHTML={marked.parse(props.block.text) as string}
       />
     )
   }

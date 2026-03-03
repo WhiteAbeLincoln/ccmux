@@ -132,11 +132,14 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.label-link {
   color: inherit;
   text-decoration: none;
 }
 
-.internal-steps:hover {
+.label-link:hover {
   text-decoration: underline;
 }
 

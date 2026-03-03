@@ -2,10 +2,10 @@
 // Top-level DisplayItem kind='exit-plan-mode'.
 
 import { Show } from 'solid-js'
-import { marked } from 'marked'
 import type { SessionMessage } from '../../lib/types'
 import { getToolUseBlock, totalTokens } from '../../lib/session'
 import MessageBlock from './MessageBlock'
+import Prose from '../Prose'
 import styles from '../SessionView.module.css'
 
 export default function ExitPlanModeView(props: {
@@ -34,9 +34,9 @@ export default function ExitPlanModeView(props: {
         </Show>
       }
     >
-      <div
+      <Prose
+        text={plan}
         class={`${styles['plan-content']} ${styles.prose}`}
-        innerHTML={marked.parse(plan) as string}
       />
       <Show when={result}>
         {(r) => (

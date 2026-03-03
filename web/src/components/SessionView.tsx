@@ -1,7 +1,6 @@
 import { createSignal, createResource, createMemo, createEffect, For, Show, Switch, Match } from 'solid-js'
 import { useParams, A } from '@solidjs/router'
 import { query } from '../lib/graphql'
-import { marked } from 'marked'
 import { truncate } from '../lib/format'
 import type { SessionMessage } from '../lib/types'
 import { getToolUseBlock, getAgentBlock, hasUserFacingText } from '../lib/session'
@@ -14,6 +13,7 @@ import AgentBlockView from './blocks/AgentBlockView'
 import TaskListView from './blocks/TaskListView'
 import InternalGroupView from './blocks/InternalGroupView'
 import SystemMessageView from './blocks/SystemMessageView'
+import Prose from './Prose'
 import styles from './SessionView.module.css'
 
 const SESSION_INFO_QUERY = `query ($id: String!) {
@@ -285,9 +285,9 @@ export default function SessionView() {
                 {(text) => (
                   <div class={styles['subagent-section']}>
                     <div class={styles['subagent-label']}>Output</div>
-                    <div
+                    <Prose
+                      text={truncate(text(), 3000)}
                       class={`${styles['subagent-text']} ${styles.prose}`}
-                      innerHTML={marked.parse(truncate(text(), 3000)) as string}
                     />
                   </div>
                 )}

@@ -1,8 +1,8 @@
 // Collapsible thinking block with markdown-rendered content.
 // Used inside ContentBlockView (from AssistantMessageView and InternalGroupView).
 
-import { marked } from 'marked'
 import CollapsibleBlock from './CollapsibleBlock'
+import Prose from '../Prose'
 import styles from '../SessionView.module.css'
 
 export default function ThinkingBlockView(props: {
@@ -25,9 +25,10 @@ export default function ThinkingBlockView(props: {
       tokens={props.tokens}
       label={<span class={styles.step}>Thinking</span>}
     >
-      <div
-        class={`${styles['thinking-content']} ${styles.prose} ${styles['prose-mono']}`}
-        innerHTML={marked.parse(props.thinking) as string}
+      <Prose
+        text={props.thinking}
+        class={`${styles['thinking-content']} ${styles.prose}`}
+        classList={{ [styles['prose-mono']]: true }}
       />
     </CollapsibleBlock>
   )

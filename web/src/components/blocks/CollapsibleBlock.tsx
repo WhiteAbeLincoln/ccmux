@@ -20,9 +20,11 @@ export default function CollapsibleBlock(props: ParentProps<{
         <span class={styles.caret}>
           {props.expanded ? '\u25BE' : '\u25B8'}
         </span>
-        <a class={styles['internal-steps']} href={`#${props.uuid}`} onClick={(e) => e.stopPropagation()}>
-          {props.label}
-        </a>
+        <span class={styles['internal-steps']}>
+          <a class={styles['label-link']} href={`#${props.uuid}`} onClick={(e) => e.stopPropagation()}>
+            {props.label}
+          </a>
+        </span>
         <Show when={props.tokens != null && props.tokens! > 0}>
           <span class={styles['internal-tokens']}>
             {props.tokens!.toLocaleString()} tok
