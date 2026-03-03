@@ -47,6 +47,7 @@ export default function InternalGroupView(props: {
       role="internal-group"
       sessionId={props.sessionId}
       uuid={props.msgs[0].uuid}
+      id={props.groupKey}
       class={styles['internal-group']}
       expanded={props.expanded.has(props.groupKey)}
       toggle={() => props.toggle(props.groupKey)}

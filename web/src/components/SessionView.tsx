@@ -215,20 +215,42 @@ export default function SessionView() {
     return items
   })
 
+  // Map message uuids to their parent group key (for expanding collapsed groups)
+  const uuidToGroup = createMemo(() => {
+    const map = new Map<string, string>()
+    for (const item of displayItems()) {
+      if (item.kind === 'internal-group') {
+        for (const msg of item.msgs) {
+          map.set(msg.uuid, item.key)
+        }
+      }
+    }
+    return map
+  })
+
   // Scroll to hash target once content is rendered
   let scrolledToHash = false
   createEffect(() => {
     const items = displayItems()
-    if (!scrolledToHash && items.length > 0 && location.hash) {
-      const id = location.hash.slice(1)
-      requestAnimationFrame(() => {
-        const el = document.getElementById(id)
-        if (el) {
-          scrolledToHash = true
-          el.scrollIntoView({ behavior: 'smooth' })
-        }
-      })
+    const exp = expanded()
+    if (scrolledToHash || items.length === 0 || !location.hash) return
+
+    const id = location.hash.slice(1)
+
+    // If target is inside a collapsed group, expand it first
+    const groupKey = uuidToGroup().get(id)
+    if (groupKey && !exp.has(groupKey)) {
+      setExpanded((prev) => new Set([...prev, groupKey]))
+      return
     }
+
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id)
+      if (el) {
+        scrolledToHash = true
+        el.scrollIntoView({ behavior: 'smooth' })
+      }
+    })
   })
 
   const [expanded, setExpanded] = createSignal(new Set<string>())

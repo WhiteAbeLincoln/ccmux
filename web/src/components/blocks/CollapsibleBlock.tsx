@@ -9,15 +9,17 @@ export default function CollapsibleBlock(props: ParentProps<{
   role: string
   sessionId: string
   uuid: string
+  id?: string
   class?: string
   classList?: Record<string, boolean | undefined>
   label: JSX.Element
   tokens?: number
 }>) {
+  const blockId = () => props.id ?? props.uuid
   return (
-    <div id={props.uuid} class={props.class} classList={{ ...props.classList, [styles['is-expanded']]: props.expanded }} data-role={props.role}>
+    <div id={blockId()} class={props.class} classList={{ ...props.classList, [styles['is-expanded']]: props.expanded }} data-role={props.role}>
       <button class={styles['internal-toggle']} onClick={() => props.toggle()}>
-        <a class={styles['link-icon']} href={`#${props.uuid}`} onClick={(e) => e.stopPropagation()} title="Link to this block">
+        <a class={styles['link-icon']} href={`#${blockId()}`} onClick={(e) => e.stopPropagation()} title="Link to this block">
           &#x1F517;
         </a>
         <span class={styles.caret}>
