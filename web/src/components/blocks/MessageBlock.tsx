@@ -14,11 +14,11 @@ export default function MessageBlock(props: ParentProps<{
   return (
     <div id={props.uuid} class={`${styles.message} ${styles[props.variant]}`} data-role={props.role}>
       <div class={styles.meta}>
-        <span class={styles['role-label']}>{props.label}</span>
+        <a class={styles['role-label']} href={`#${props.uuid}`}>{props.label}</a>
         {props.extraMeta}
         <span class={styles['meta-right']}>
           {props.rightMeta}
-          <A class={styles.uuid} href={`/session/${props.sessionId}/raw?uuid=${props.uuid}`}>
+          <A class={styles.uuid} href={`/session/${props.sessionId}/raw#${props.uuid}`}>
             {props.uuid.slice(0, 8)}
           </A>
         </span>

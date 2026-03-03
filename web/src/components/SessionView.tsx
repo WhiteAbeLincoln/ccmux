@@ -1,4 +1,4 @@
-import { createSignal, createResource, createMemo, For, Show, Switch, Match } from 'solid-js'
+import { createSignal, createResource, createMemo, createEffect, For, Show, Switch, Match } from 'solid-js'
 import { useParams, A } from '@solidjs/router'
 import { query } from '../lib/graphql'
 import { marked } from 'marked'
@@ -213,6 +213,22 @@ export default function SessionView() {
     flushInternal()
     flushTasks()
     return items
+  })
+
+  // Scroll to hash target once content is rendered
+  let scrolledToHash = false
+  createEffect(() => {
+    const items = displayItems()
+    if (!scrolledToHash && items.length > 0 && location.hash) {
+      const id = location.hash.slice(1)
+      requestAnimationFrame(() => {
+        const el = document.getElementById(id)
+        if (el) {
+          scrolledToHash = true
+          el.scrollIntoView({ behavior: 'smooth' })
+        }
+      })
+    }
   })
 
   const [expanded, setExpanded] = createSignal(new Set<string>())

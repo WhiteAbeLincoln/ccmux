@@ -6,7 +6,7 @@ import {
   Show,
   For,
 } from 'solid-js'
-import { useParams, useSearchParams, A } from '@solidjs/router'
+import { useParams, A } from '@solidjs/router'
 import { createVirtualizer } from '@tanstack/solid-virtual'
 import { query } from '../lib/graphql'
 import { JsonTree } from '../lib/json-tree'
@@ -81,7 +81,7 @@ function formatTimestamp(ts: string): string {
 
 export default function RawLogView() {
   const params = useParams<{ id: string }>()
-  const [searchParams] = useSearchParams<{ uuid?: string }>()
+  const targetUuid = location.hash ? location.hash.slice(1) : undefined
 
   let scrollRef!: HTMLDivElement
 
@@ -142,8 +142,7 @@ export default function RawLogView() {
       }
       setLineCache(cache)
 
-      // If there's a uuid param, find which line it's on
-      const targetUuid = searchParams.uuid
+      // If there's a uuid in the hash, find which line it's on
       if (targetUuid) {
         // Match the uuid field specifically, not parentUuid or messageId
         const needle = `"uuid":"${targetUuid}"`
@@ -446,6 +445,7 @@ export default function RawLogView() {
                         when={isExpanded()}
                         fallback={
                           <div
+                            id={summary().uuid || undefined}
                             data-index={vItem.index}
                             ref={(el) => queueMicrotask(() => virtualizer.measureElement(el))}
                             class={`${styles['line-row']} ${isHighlight() ? styles['highlight-line'] : ''}`}
@@ -479,6 +479,7 @@ export default function RawLogView() {
                         }
                       >
                         <div
+                          id={summary().uuid || undefined}
                           data-index={vItem.index}
                           ref={(el) => queueMicrotask(() => virtualizer.measureElement(el))}
                           class={styles['line-expanded']}

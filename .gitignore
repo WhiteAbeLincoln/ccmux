@@ -29,3 +29,4 @@ web/node_modules
 web/dist
 # nix build
 /result
+/.claude/settings.local.json
