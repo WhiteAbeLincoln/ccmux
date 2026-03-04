@@ -109,9 +109,10 @@ pub fn discover_sessions(base_path: &Path) -> std::io::Result<Vec<SessionInfo>> 
                                         });
                                     }
                                     Err(e) => {
-                                        eprintln!(
-                                            "Warning: failed to scan subagent {}: {e}",
-                                            stem
+                                        tracing::warn!(
+                                            subagent = %stem,
+                                            error = %e,
+                                            "Failed to scan subagent",
                                         );
                                     }
                                 }
@@ -120,7 +121,7 @@ pub fn discover_sessions(base_path: &Path) -> std::io::Result<Vec<SessionInfo>> 
                     }
                 }
                 Err(e) => {
-                    eprintln!("Warning: failed to scan {}: {e}", file_path.display());
+                    tracing::warn!(path = %file_path.display(), error = %e, "Failed to scan session");
                 }
             }
         }
@@ -285,7 +286,7 @@ pub fn load_session_raw(path: &Path) -> std::io::Result<Vec<serde_json::Value>> 
         match serde_json::from_str::<serde_json::Value>(&line) {
             Ok(value) => events.push(value),
             Err(e) => {
-                eprintln!("Warning: failed to parse line {}: {e}", line_num + 1);
+                tracing::warn!(line = line_num + 1, error = %e, "Failed to parse JSONL line");
             }
         }
     }

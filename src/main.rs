@@ -11,6 +11,8 @@ use axum::{
     routing::get,
 };
 use tower_http::cors::CorsLayer;
+use tower_http::trace::TraceLayer;
+use tracing_subscriber::{EnvFilter, fmt};
 
 use graphql::AppSchema;
 
@@ -24,6 +26,10 @@ async fn graphiql() -> impl IntoResponse {
 
 #[tokio::main]
 async fn main() {
+    fmt()
+        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
+        .init();
+
     let home = std::env::var("HOME").expect("HOME not set");
     let base_path = PathBuf::from(format!("{home}/.claude/projects"));
 
@@ -32,11 +38,12 @@ async fn main() {
     let app = axum::Router::new()
         .route("/graphql", get(graphiql).post(graphql_handler))
         .layer(Extension(schema))
+        .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive());
 
     let addr = "127.0.0.1:3001";
-    println!("Server running at http://{addr}");
-    println!("GraphiQL playground at http://{addr}/graphql");
+    tracing::info!("Server running at http://{addr}");
+    tracing::info!("GraphiQL playground at http://{addr}/graphql");
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
