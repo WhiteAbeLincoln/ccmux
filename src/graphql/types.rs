@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use async_graphql::{InputObject, Json, Object, SimpleObject};
+use async_graphql::{InputObject, Interface, Json, Object, SimpleObject};
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 
@@ -47,94 +47,71 @@ impl SessionData {
     }
 }
 
-/// A single session event with known fields, raw JSON, and relational resolvers.
-pub struct SessionEvent {
+// --- Event interface ---
+
+#[derive(Interface)]
+#[graphql(
+    field(name = "type", method = "event_type", ty = "String"),
+    field(name = "raw", ty = "Json<Value>"),
+    field(name = "error", ty = "Option<Json<Value>>"),
+    field(name = "apiError", method = "api_error", ty = "Option<Json<Value>>"),
+    field(name = "isApiErrorMessage", method = "is_api_error_message", ty = "Option<bool>")
+)]
+pub enum Event {
+    UnknownEvent(UnknownEvent),
+}
+
+/// A catch-all event type for any events that don't match the known types.
+pub struct UnknownEvent {
     pub data: Arc<SessionData>,
     pub index: usize,
 }
 
-impl SessionEvent {
+impl UnknownEvent {
     fn value(&self) -> &Value {
         &self.data.events[self.index]
-    }
-
-    fn str_field(&self, key: &str) -> Option<String> {
-        self.value()
-            .get(key)
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string())
     }
 }
 
 #[Object]
-impl SessionEvent {
+impl UnknownEvent {
     #[graphql(name = "type")]
     async fn event_type(&self) -> String {
-        self.str_field("type").unwrap_or_default()
+        self.value()
+            .get("type")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string()
     }
 
-    async fn uuid(&self) -> Option<String> {
-        self.str_field("uuid")
-    }
-
-    async fn timestamp(&self) -> Option<String> {
-        self.str_field("timestamp")
-    }
-
-    async fn session_id(&self) -> Option<String> {
-        self.str_field("sessionId")
-    }
-
-    async fn parent_uuid(&self) -> Option<String> {
-        self.str_field("parentUuid")
-    }
-
-    /// The full raw JSON event.
     async fn raw(&self) -> Json<Value> {
         Json(self.value().clone())
     }
 
-    /// The event whose uuid matches this event's parentUuid.
-    async fn parent(&self) -> Option<SessionEvent> {
-        let parent_uuid = self.value().get("parentUuid").and_then(|v| v.as_str())?;
-        let &idx = self.data.uuid_to_idx.get(parent_uuid)?;
-        Some(SessionEvent {
-            data: Arc::clone(&self.data),
-            index: idx,
-        })
+    async fn error(&self) -> Option<Json<Value>> {
+        self.value().get("error").map(|v| Json(v.clone()))
     }
 
-    /// All events whose parentUuid matches this event's uuid.
-    async fn children(&self) -> Vec<SessionEvent> {
-        let uuid = match self.value().get("uuid").and_then(|v| v.as_str()) {
-            Some(u) => u,
-            None => return vec![],
-        };
-        self.data
-            .parent_to_children
-            .get(uuid)
-            .map(|indices| {
-                indices
-                    .iter()
-                    .map(|&idx| SessionEvent {
-                        data: Arc::clone(&self.data),
-                        index: idx,
-                    })
-                    .collect()
-            })
-            .unwrap_or_default()
+    async fn api_error(&self) -> Option<Json<Value>> {
+        self.value().get("apiError").map(|v| Json(v.clone()))
+    }
+
+    async fn is_api_error_message(&self) -> Option<bool> {
+        self.value()
+            .get("isApiErrorMessage")
+            .and_then(|v| v.as_bool())
     }
 }
 
 /// Paginated session events result.
 pub struct SessionEventsData {
-    pub events: Vec<SessionEvent>,
+    pub events: Vec<Event>,
     pub total: i32,
 }
 
 #[Object]
 impl SessionEventsData {
-    async fn events(&self) -> &[SessionEvent] {
+    async fn events(&self) -> &[Event] {
         &self.events
     }
 
@@ -201,6 +178,13 @@ impl Session {
         let total = all_events.len() as i32;
         let data = Arc::new(SessionData::new(all_events));
 
+        let make_event = |i| {
+            Event::UnknownEvent(UnknownEvent {
+                data: Arc::clone(&data),
+                index: i,
+            })
+        };
+
         let events = match page {
             Some(p) => {
                 let start = (p.offset as usize).min(data.events.len());
@@ -209,19 +193,9 @@ impl Session {
                 } else {
                     data.events.len()
                 };
-                (start..end)
-                    .map(|i| SessionEvent {
-                        data: Arc::clone(&data),
-                        index: i,
-                    })
-                    .collect()
+                (start..end).map(make_event).collect()
             }
-            None => (0..data.events.len())
-                .map(|i| SessionEvent {
-                    data: Arc::clone(&data),
-                    index: i,
-                })
-                .collect(),
+            None => (0..data.events.len()).map(make_event).collect(),
         };
 
         Ok(SessionEventsData { events, total })

@@ -10,6 +10,15 @@ cd web && bun dev  # frontend on :5173
 cd web && bun run check # typecheck frontend
 ```
 
+## GraphQL Schema & TypeScript Codegen
+
+Rust types are the source of truth. After changing GraphQL types in `src/graphql/types.rs`:
+
+```bash
+cargo run --bin export_schema > schema.graphql  # export SDL from Rust
+cd web && bun run codegen                       # generate web/src/lib/generated/schema.ts
+```
+
 ## Browser Testing with Rodney
 
 [Rodney](https://github.com/simonw/rodney) is available in the nix dev shell for browser automation. Use it to visually verify frontend changes.

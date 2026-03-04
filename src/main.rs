@@ -1,6 +1,3 @@
-mod graphql;
-mod session;
-
 use std::path::PathBuf;
 
 use async_graphql::http::GraphiQLSource;
@@ -14,7 +11,7 @@ use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{EnvFilter, fmt};
 
-use graphql::AppSchema;
+use ccmux::graphql::AppSchema;
 
 async fn graphql_handler(schema: Extension<AppSchema>, req: GraphQLRequest) -> GraphQLResponse {
     schema.execute(req.into_inner()).await.into()
@@ -33,7 +30,7 @@ async fn main() {
     let home = std::env::var("HOME").expect("HOME not set");
     let base_path = PathBuf::from(format!("{home}/.claude/projects"));
 
-    let schema = graphql::build_schema(base_path);
+    let schema = ccmux::graphql::build_schema(base_path);
 
     let app = axum::Router::new()
         .route("/graphql", get(graphiql).post(graphql_handler))

@@ -30,3 +30,6 @@ web/dist
 # nix build
 /result
 /.claude/settings.local.json
+
+# Override global gitignore that ignores [Bb]in
+!src/bin/
