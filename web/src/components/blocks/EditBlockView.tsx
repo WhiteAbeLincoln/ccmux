@@ -4,6 +4,7 @@
 import { Show } from 'solid-js'
 import { formatInput, truncate } from '../../lib/format'
 import CollapsibleBlock from './CollapsibleBlock'
+import eb from './EditBlockView.module.css'
 import styles from '../SessionView.module.css'
 
 function buildDiffLines(oldStr: string, newStr: string): { type: 'remove' | 'add' | 'context'; text: string }[] {
@@ -45,12 +46,10 @@ export default function EditBlockView(props: {
   return (
     <CollapsibleBlock
       role="tool"
-      sessionId={props.sessionId}
-      uuid={props.uuid}
+      meta={{ sessionId: props.sessionId, uuid: props.uuid, tokens: props.tokens, result: props.result }}
       class={styles['tool-block']}
       expanded={props.expanded.has(props.blockKey)}
       toggle={() => props.toggle(props.blockKey)}
-      tokens={props.tokens}
       label={
         <>
           <span class={styles.step}>Edit</span>
@@ -58,13 +57,7 @@ export default function EditBlockView(props: {
             <span class={styles['tool-filepath']}>{filePath}</span>
           </Show>
           <Show when={input.replace_all}>
-            <span class={styles['info-badge']}>all</span>
-          </Show>
-          <Show when={props.result?.isError}>
-            <span class={styles['error-badge']}>error</span>
-          </Show>
-          <Show when={props.result && !props.result.isError}>
-            <span class={styles['ok-badge']}>done</span>
+            <span class={eb['info-badge']}>all</span>
           </Show>
         </>
       }
@@ -79,16 +72,16 @@ export default function EditBlockView(props: {
             </div>
           }
         >
-          <div class={styles['diff-block']}>
+          <div class={eb['diff-block']}>
             {buildDiffLines(input.old_string!, input.new_string!).map((line) => (
               <div
-                class={styles['diff-line']}
+                class={eb['diff-line']}
                 classList={{
-                  [styles['diff-add']]: line.type === 'add',
-                  [styles['diff-remove']]: line.type === 'remove',
+                  [eb['diff-add']]: line.type === 'add',
+                  [eb['diff-remove']]: line.type === 'remove',
                 }}
               >
-                <span class={styles['diff-marker']}>
+                <span class={eb['diff-marker']}>
                   {line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' '}
                 </span>
                 <span>{line.text}</span>

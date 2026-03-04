@@ -6,6 +6,7 @@ import type { SessionMessage } from '../../lib/types'
 import { getToolUseBlock, totalTokens } from '../../lib/session'
 import MessageBlock from './MessageBlock'
 import Prose from '../Prose'
+import ep from './ExitPlanModeView.module.css'
 import styles from '../SessionView.module.css'
 
 export default function ExitPlanModeView(props: {
@@ -24,23 +25,15 @@ export default function ExitPlanModeView(props: {
       variant="exit-plan-mode"
       role="exit-plan-mode"
       label="Plan"
-      sessionId={props.sessionId}
-      uuid={props.msg.uuid}
-      rightMeta={
-        <Show when={totalTokens(props.msg) !== null}>
-          <span class={styles['internal-tokens']}>
-            {totalTokens(props.msg)?.toLocaleString()} tok
-          </span>
-        </Show>
-      }
+      meta={{ sessionId: props.sessionId, uuid: props.msg.uuid, tokens: totalTokens(props.msg) }}
     >
       <Prose
         text={plan}
-        class={`${styles['plan-content']} ${styles.prose}`}
+        class={ep['plan-content']}
       />
       <Show when={result}>
         {(r) => (
-          <div class={styles['plan-output']}>
+          <div class={ep['plan-output']}>
             <button class={styles.toggle} onClick={() => props.toggle(outputKey)}>
               {props.expanded.has(outputKey) ? '\u25BE' : '\u25B8'} Output
               <Show when={r().content.includes('rejected')}>
@@ -51,7 +44,7 @@ export default function ExitPlanModeView(props: {
               </Show>
             </button>
             <Show when={props.expanded.has(outputKey)}>
-              <pre class={styles['plan-output-content']}>{r().content}</pre>
+              <pre class={ep['plan-output-content']}>{r().content}</pre>
             </Show>
           </div>
         )}

@@ -5,6 +5,7 @@ import type { SessionMessage } from '../../lib/types'
 import { totalTokens } from '../../lib/session'
 import ContentBlockView from './ContentBlockView'
 import MessageBlock from './MessageBlock'
+import mb from './MessageBlock.module.css'
 import styles from '../SessionView.module.css'
 
 export default function AssistantMessageView(props: {
@@ -19,18 +20,10 @@ export default function AssistantMessageView(props: {
       variant="assistant"
       role="assistant"
       label="Assistant"
-      sessionId={props.sessionId}
-      uuid={props.msg.uuid}
+      meta={{ sessionId: props.sessionId, uuid: props.msg.uuid, tokens: totalTokens(props.msg) }}
       extraMeta={
         <Show when={props.msg.assistantContent?.model}>
-          {(m) => <span class={styles.model}>{m()}</span>}
-        </Show>
-      }
-      rightMeta={
-        <Show when={totalTokens(props.msg) !== null}>
-          <span class={styles['internal-tokens']}>
-            {totalTokens(props.msg)?.toLocaleString()} tok
-          </span>
+          {(m) => <span class={mb.model}>{m()}</span>}
         </Show>
       }
     >

@@ -7,6 +7,7 @@ import type { SessionMessage } from '../../lib/types'
 import { compactSteps } from '../../lib/session'
 import ContentBlockView from './ContentBlockView'
 import CollapsibleBlock from './CollapsibleBlock'
+import cb from './CollapsibleBlock.module.css'
 import styles from '../SessionView.module.css'
 
 export default function InternalGroupView(props: {
@@ -45,19 +46,17 @@ export default function InternalGroupView(props: {
   return (
     <CollapsibleBlock
       role="internal-group"
-      sessionId={props.sessionId}
-      uuid={props.msgs[0].uuid}
+      meta={{ sessionId: props.sessionId, uuid: props.msgs[0].uuid, tokens: props.tokens }}
       id={props.groupKey}
-      class={styles['internal-group']}
+      class={cb['internal-group']}
       expanded={props.expanded.has(props.groupKey)}
       toggle={() => props.toggle(props.groupKey)}
-      tokens={props.tokens}
       label={
         <For each={compactSteps(props.steps)}>
           {(step, si) => (
             <>
               <Show when={si() > 0}>
-                <span class={styles['step-dot']}>&middot;</span>
+                <span class={cb['step-dot']}>&middot;</span>
               </Show>
               <span class={styles.step}>
                 {step.name}
@@ -71,7 +70,7 @@ export default function InternalGroupView(props: {
         </For>
       }
     >
-      <div class={styles['internal-expanded']}>
+      <div class={cb['internal-expanded']}>
         <For each={props.msgs}>
           {(msg) => (
             <For each={msg.assistantContent?.blocks ?? []}>

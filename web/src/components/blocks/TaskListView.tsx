@@ -3,6 +3,7 @@
 
 import { For } from 'solid-js'
 import CollapsibleBlock from './CollapsibleBlock'
+import tl from './TaskListView.module.css'
 import styles from '../SessionView.module.css'
 
 export default function TaskListView(props: {
@@ -23,9 +24,8 @@ export default function TaskListView(props: {
   return (
     <CollapsibleBlock
       role="task-list"
-      sessionId={props.sessionId}
-      uuid={props.uuid}
-      class={styles['task-list']}
+      meta={{ sessionId: props.sessionId, uuid: props.uuid }}
+      class={tl['task-list']}
       classList={{}}
       expanded={props.expanded}
       toggle={props.toggle}
@@ -35,17 +35,17 @@ export default function TaskListView(props: {
         </span>
       }
     >
-      <div class={styles['task-items']}>
+      <div class={tl['task-items']}>
         <For each={tasks()}>
           {([, task]) => (
             <div
-              class={styles['task-item']}
+              class={tl['task-item']}
               classList={{
-                [styles['task-completed']]: task.status === 'completed',
-                [styles['task-deleted']]: task.status === 'deleted',
+                [tl['task-completed']]: task.status === 'completed',
+                [tl['task-deleted']]: task.status === 'deleted',
               }}
             >
-              <span class={styles['task-checkbox']}>
+              <span class={tl['task-checkbox']}>
                 {task.status === 'completed'
                   ? '\u2611'
                   : task.status === 'in_progress'
@@ -54,7 +54,7 @@ export default function TaskListView(props: {
                       ? '\u2612'
                       : '\u2610'}
               </span>
-              <span class={styles['task-subject']}>{task.subject}</span>
+              <span class={tl['task-subject']}>{task.subject}</span>
             </div>
           )}
         </For>

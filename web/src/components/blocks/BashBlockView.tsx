@@ -7,6 +7,7 @@ import type { SessionMessage } from "../../lib/types";
 import { getToolUseBlock, totalTokens } from "../../lib/session";
 import { highlightBash } from "../../lib/highlight";
 import MessageBlock from "./MessageBlock";
+import bb from "./BashBlockView.module.css";
 import styles from "../SessionView.module.css";
 
 export function HighlightedBash(props: { code: string }) {
@@ -18,12 +19,12 @@ export function HighlightedBash(props: { code: string }) {
     <Show
       when={html()}
       fallback={
-        <pre class={styles["bash-command"]}>
+        <pre class={bb["bash-command"]}>
           <code>{props.code}</code>
         </pre>
       }
     >
-      {(h) => <div class={styles["bash-command"]} innerHTML={h()} />}
+      {(h) => <div class={bb["bash-command"]} innerHTML={h()} />}
     </Show>
   );
 }
@@ -46,28 +47,15 @@ export default function BashBlockView(props: {
       variant="bash"
       role="bash"
       label="$"
-      sessionId={props.sessionId}
-      uuid={props.msg.uuid}
+      meta={{ sessionId: props.sessionId, uuid: props.msg.uuid, tokens: totalTokens(props.msg), result }}
       extraMeta={
-        <>
-          <span class={styles["bash-desc"]}>{description}</span>
-          <Show when={result?.isError}>
-            <span class={styles["error-badge"]}>error</span>
-          </Show>
-        </>
-      }
-      rightMeta={
-        <Show when={totalTokens(props.msg) !== null}>
-          <span class={styles['internal-tokens']}>
-            {totalTokens(props.msg)?.toLocaleString()} tok
-          </span>
-        </Show>
+        <span class={bb["bash-desc"]}>{description}</span>
       }
     >
       <HighlightedBash code={command} />
       <Show when={result}>
         {(r) => (
-          <div class={styles["bash-output-section"]}>
+          <div class={bb["bash-output-section"]}>
             <button
               class={styles.toggle}
               onClick={() => props.toggle(outputKey)}
@@ -76,7 +64,7 @@ export default function BashBlockView(props: {
             </button>
             <Show when={props.expanded.has(outputKey)}>
               <pre
-                class={styles["bash-output"]}
+                class={bb["bash-output"]}
                 classList={{ [styles["is-error"]]: !!r().isError }}
               >
                 {stripAnsi(r().content)}

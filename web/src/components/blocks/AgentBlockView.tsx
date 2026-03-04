@@ -7,6 +7,8 @@ import { truncate } from '../../lib/format'
 import type { SessionMessage } from '../../lib/types'
 import { getAgentBlock, totalTokens } from '../../lib/session'
 import CollapsibleBlock from './CollapsibleBlock'
+import cb from './CollapsibleBlock.module.css'
+import ab from './AgentBlockView.module.css'
 import styles from '../SessionView.module.css'
 
 export default function AgentBlockView(props: {
@@ -32,32 +34,30 @@ export default function AgentBlockView(props: {
   return (
     <CollapsibleBlock
       role="agent"
-      sessionId={props.sessionId}
-      uuid={props.msg.uuid}
-      class={styles['internal-single']}
+      meta={{ sessionId: props.sessionId, uuid: props.msg.uuid, tokens: totalTokens(props.msg) ?? undefined }}
+      class={cb['internal-single']}
       classList={{
         [styles['tool-block']]: true,
       }}
       expanded={props.expanded.has(key)}
       toggle={() => props.toggle(key)}
-      tokens={totalTokens(props.msg) ?? undefined}
       label={
         <>
           <span class={styles.step}>Agent</span>
           <Show when={subagentType}>
-            <span class={styles['step-dot']}>&middot;</span>
+            <span class={cb['step-dot']}>&middot;</span>
             <span class={styles.step}>{subagentType}</span>
           </Show>
-          <span class={styles['step-dot']}>&middot;</span>
+          <span class={cb['step-dot']}>&middot;</span>
           <span class={styles.step}>{description}</span>
         </>
       }
     >
-      <div class={styles['agent-expanded']}>
+      <div class={ab['agent-expanded']}>
         <Show when={agentId()}>
           {(aid) => (
             <A
-              class={styles['agent-link']}
+              class={ab['agent-link']}
               href={`/session/agent-${aid()}`}
             >
               View subagent session &rarr;
@@ -66,12 +66,12 @@ export default function AgentBlockView(props: {
         </Show>
         <Show when={result}>
           {(r) => (
-            <div class={styles['agent-output-section']}>
+            <div class={ab['agent-output-section']}>
               <button class={styles.toggle} onClick={() => props.toggle(outputKey)}>
                 {props.expanded.has(outputKey) ? '\u25BE' : '\u25B8'} Output
               </button>
               <Show when={props.expanded.has(outputKey)}>
-                <pre class={styles['agent-output']}>
+                <pre class={ab['agent-output']}>
                   {truncate(r().content, 5000)}
                 </pre>
               </Show>

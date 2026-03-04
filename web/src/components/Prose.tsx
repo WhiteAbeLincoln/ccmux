@@ -2,6 +2,7 @@ import { createEffect } from 'solid-js'
 import { marked } from 'marked'
 import { highlight } from '../lib/highlight'
 import type { BundledLanguage } from 'shiki'
+import ps from './Prose.module.css'
 
 export default function Prose(props: {
   text: string
@@ -27,5 +28,5 @@ export default function Prose(props: {
     }
   })
 
-  return <div ref={ref} class={props.class} classList={props.classList} />
+  return <div ref={ref} class={`${ps.prose}${props.class ? ` ${props.class}` : ''}`} classList={props.classList} />
 }

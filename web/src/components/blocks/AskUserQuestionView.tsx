@@ -2,11 +2,11 @@
 // Top-level DisplayItem kind='ask-user-question'. Also exports the inner AskUserQuestionView
 // for reuse, plus the AskUserQuestion type and parseAskUserAnswers helper.
 
-import { For, Show } from "solid-js";
+import { For } from "solid-js";
 import type { SessionMessage } from "../../lib/types";
 import { getToolUseBlock, totalTokens } from "../../lib/session";
 import MessageBlock from "./MessageBlock";
-import styles from "../SessionView.module.css";
+import aq from "./AskUserQuestionView.module.css";
 
 export function AskQuestionBlockView(props: {
   msg: SessionMessage;
@@ -25,15 +25,7 @@ export function AskQuestionBlockView(props: {
       variant="ask-user-question"
       role="ask-user-question"
       label="Question"
-      sessionId={props.sessionId}
-      uuid={props.msg.uuid}
-      rightMeta={
-        <Show when={totalTokens(props.msg) !== null}>
-          <span class={styles['internal-tokens']}>
-            {totalTokens(props.msg)?.toLocaleString()} tok
-          </span>
-        </Show>
-      }
+      meta={{ uuid: props.msg.uuid, sessionId: props.sessionId, tokens: totalTokens(props.msg) }}
     >
       <AskUserQuestionView questions={questions} answers={answers} />
     </MessageBlock>
@@ -64,36 +56,36 @@ export default function AskUserQuestionView(props: {
   answers: Map<string, string>;
 }) {
   return (
-    <div class={styles["ask-questions"]} data-component="ask-user-question">
+    <div class={aq["ask-questions"]} data-component="ask-user-question">
       <For each={props.questions}>
         {(q) => {
           const answer = () => props.answers.get(q.question);
           return (
             <div
-              class={styles["question-group"]}
+              class={aq["question-group"]}
               data-question={q.header}
               itemscope
               itemtype="https://schema.org/Question"
             >
-              <div class={styles["question-header"]}>
-                <span class={styles["question-badge"]} itemprop="name">
+              <div class={aq["question-header"]}>
+                <span class={aq["question-badge"]} itemprop="name">
                   {q.header}
                 </span>
                 {q.multiSelect && (
-                  <span class={styles["multi-badge"]}>multi</span>
+                  <span class={aq["multi-badge"]}>multi</span>
                 )}
               </div>
-              <div class={styles["question-text"]} itemprop="text">
+              <div class={aq["question-text"]} itemprop="text">
                 {q.question}
               </div>
-              <div class={styles["question-options"]}>
+              <div class={aq["question-options"]}>
                 <For each={q.options}>
                   {(opt) => {
                     const selected = () => answer() === opt.label;
                     return (
                       <div
-                        class={styles["question-option"]}
-                        classList={{ [styles["option-selected"]]: selected() }}
+                        class={aq["question-option"]}
+                        classList={{ [aq["option-selected"]]: selected() }}
                         data-selected={selected() ? "true" : undefined}
                         itemscope
                         itemtype="https://schema.org/Answer"
@@ -101,15 +93,15 @@ export default function AskUserQuestionView(props: {
                           selected() ? "acceptedAnswer" : "suggestedAnswer"
                         }
                       >
-                        <span class={styles["option-indicator"]}>
+                        <span class={aq["option-indicator"]}>
                           {selected() ? "\u25CF" : "\u25CB"}
                         </span>
                         <div>
-                          <span class={styles["option-label"]} itemprop="text">
+                          <span class={aq["option-label"]} itemprop="text">
                             {opt.label}
                           </span>
                           <span
-                            class={styles["option-desc"]}
+                            class={aq["option-desc"]}
                             itemprop="description"
                           >
                             {opt.description}

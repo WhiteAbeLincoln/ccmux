@@ -18,10 +18,11 @@ export function hasUserFacingText(msg: SessionMessage): boolean {
   return msg.assistantContent.blocks.some((b) => b.__typename === 'TextBlock')
 }
 
-export function totalTokens(msg: SessionMessage): number | null {
+export function totalTokens(msg: SessionMessage): number | undefined {
   const u = msg.assistantContent?.usage
-  if (!u) return null
-  return (u.inputTokens ?? 0) + (u.outputTokens ?? 0)
+  if (u) {
+    return (u.inputTokens ?? 0) + (u.outputTokens ?? 0)
+  }
 }
 
 export function compactSteps(steps: string[]): { name: string; count: number }[] {

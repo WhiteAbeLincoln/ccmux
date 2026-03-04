@@ -1,41 +1,32 @@
 import type { JSX, ParentProps } from 'solid-js'
 import { Show } from 'solid-js'
-import { A } from '@solidjs/router'
-import styles from '../SessionView.module.css'
+import cb from './CollapsibleBlock.module.css'
+import MessageMeta, { type MetaProps } from './MessageMeta'
 
 export default function CollapsibleBlock(props: ParentProps<{
   expanded: boolean
   toggle: () => void
   role: string
-  sessionId: string
-  uuid: string
   id?: string
   class?: string
   classList?: Record<string, boolean | undefined>
   label: JSX.Element
-  tokens?: number
+  meta: MetaProps,
 }>) {
-  const blockId = () => props.id ?? props.uuid
+  const blockId = () => props.id ?? props.meta.uuid
   return (
-    <div id={blockId()} class={props.class} classList={{ ...props.classList, [styles['is-expanded']]: props.expanded }} data-role={props.role}>
-      <button class={styles['internal-toggle']} onClick={() => props.toggle()}>
-        <a class={styles['link-icon']} href={`#${blockId()}`} onClick={(e) => e.stopPropagation()} title="Link to this block">
+    <div id={blockId()} class={props.class} classList={props.classList} data-role={props.role} data-expanded={props.expanded || undefined}>
+      <button class={cb['toggle']} onClick={() => props.toggle()}>
+        <a class={cb['link-icon']} href={`#${blockId()}`} onClick={(e) => e.stopPropagation()} title="Link to this block">
           &#x1F517;
         </a>
-        <span class={styles.caret}>
+        <span class={cb.caret}>
           {props.expanded ? '\u25BE' : '\u25B8'}
         </span>
-        <span class={styles['internal-steps']}>
+        <span class={cb['label']}>
           {props.label}
         </span>
-        <Show when={props.tokens != null && props.tokens! > 0}>
-          <span class={styles['internal-tokens']}>
-            {props.tokens!.toLocaleString()} tok
-          </span>
-        </Show>
-        <A class={styles.uuid} href={`/session/${props.sessionId}/raw#${props.uuid}`}>
-          {props.uuid.slice(0, 8)}
-        </A>
+        <MessageMeta {...props.meta} />
       </button>
       <Show when={props.expanded}>
         {props.children}

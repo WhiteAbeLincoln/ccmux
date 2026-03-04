@@ -24,7 +24,7 @@ export default function ContentBlockView(props: {
     return (
       <Prose
         text={props.block.text}
-        class={`${styles.block} ${styles['text-block']} ${styles.prose}`}
+        class={`${styles.block} ${styles['text-block']}`}
       />
     )
   }

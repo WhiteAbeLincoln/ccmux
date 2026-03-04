@@ -309,7 +309,7 @@ export default function SessionView() {
                     <div class={styles['subagent-label']}>Output</div>
                     <Prose
                       text={truncate(text(), 3000)}
-                      class={`${styles['subagent-text']} ${styles.prose}`}
+                      class={styles['subagent-text']}
                     />
                   </div>
                 )}

@@ -64,23 +64,15 @@ export default function ReadBlockView(props: {
   return (
     <CollapsibleBlock
       role="tool"
-      sessionId={props.sessionId}
-      uuid={props.uuid}
+      meta={{ sessionId: props.sessionId, uuid: props.uuid, tokens: props.tokens, result: props.result }}
       class={styles['tool-block']}
       expanded={props.expanded.has(props.blockKey)}
       toggle={() => props.toggle(props.blockKey)}
-      tokens={props.tokens}
       label={
         <>
           <span class={styles.step}>Read</span>
           <Show when={filePath}>
             <span class={styles['tool-filepath']}>{filePath}</span>
-          </Show>
-          <Show when={props.result?.isError}>
-            <span class={styles['error-badge']}>error</span>
-          </Show>
-          <Show when={props.result && !props.result.isError}>
-            <span class={styles['ok-badge']}>done</span>
           </Show>
         </>
       }
