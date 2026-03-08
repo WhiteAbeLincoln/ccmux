@@ -159,7 +159,9 @@ function toolInput<T>(props: ToolViewProps): T | undefined {
 
 function toolResultContent(props: ToolViewProps): unknown {
   if (!props.toolResult) return undefined
-  return props.toolResult.event.toolUseResult ?? props.toolResult.content?.content
+  // Prefer content.content (structured data with image parts etc.)
+  // over event.toolUseResult (often a plain string summary)
+  return props.toolResult.content?.content ?? props.toolResult.event.toolUseResult
 }
 
 function toolResultString(props: ToolViewProps): string {
