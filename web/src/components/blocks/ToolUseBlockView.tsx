@@ -21,6 +21,7 @@ import {
 import { fileExtToLang, highlight, highlightBash, highlightToLines } from '../../lib/highlight'
 import { parseGrepOutput, type GrepGroup } from '../../lib/grep-parse'
 import { JsonTree } from '../../lib/json-tree'
+import Prose from '../Prose'
 import { contentToString } from '../../lib/session'
 import styles from '../SessionView.module.css'
 import tu from './ToolUseBlockView.module.css'
@@ -88,6 +89,10 @@ export function toolExtraLabel(evt: DisplayItem): JSX.Element {
           ) : null}
         </>
       )
+    case 'WebSearch':
+      return input.query ? (
+        <span class={tu['bash-desc']}>{input.query as string}</span>
+      ) : null
     default:
       return null
   }
@@ -140,6 +145,7 @@ const toolUseMap: {
   Glob: GlobView,
   Grep: GrepView,
   Agent: AgentView,
+  WebSearch: WebSearchView,
 }
 
 type ToolViewProps = {
@@ -931,6 +937,73 @@ function AgentView(props: ToolViewProps): JSX.Element {
             </Show>
           </div>
         )}
+      </Show>
+    </div>
+  )
+}
+
+// --- WebSearch ---
+
+type WebSearchResult = {
+  query: string
+  results: [
+    { content: { title: string; url: string }[] },
+    string,
+  ]
+}
+
+function WebSearchView(props: ToolViewProps): JSX.Element {
+  const input = () => toolInput<{ query?: string }>(props)
+
+  useExtraLabel(() => {
+    const q = input()?.query
+    return q ? <span class={tu['bash-desc']}>{q}</span> : null
+  })
+
+  const result = () => {
+    if (!props.toolResult) return undefined
+    return props.toolResult.event.toolUseResult as WebSearchResult | undefined
+  }
+
+  const links = () => result()?.results?.[0]?.content ?? []
+  const summary = () => result()?.results?.[1] ?? ''
+
+  const ctx = useContext(SessionContext)
+  const summaryId = () =>
+    props.toolResult ? `${props.toolResult.event.uuid}-ws-summary` : ''
+
+  return (
+    <div class={tu['tool-details']}>
+      <Show when={result()}>
+        <div class={tu['ws-query']}>
+          {result()!.query}
+        </div>
+        <Show when={links().length > 0}>
+          <ul class={tu['ws-links']}>
+            <For each={links()}>
+              {(link) => (
+                <li>
+                  <a href={link.url} target="_blank" rel="noopener noreferrer">
+                    {link.title || link.url}
+                  </a>
+                </li>
+              )}
+            </For>
+          </ul>
+        </Show>
+        <Show when={summary()}>
+          <div class={tu['ws-summary-section']}>
+            <button
+              class={styles.toggle}
+              onClick={() => ctx.toggleExpanded(summaryId())}
+            >
+              {ctx.isExpanded(summaryId()) ? '\u25BE' : '\u25B8'} Summary
+            </button>
+            <Show when={ctx.isExpanded(summaryId())}>
+              <Prose text={summary()} />
+            </Show>
+          </div>
+        </Show>
       </Show>
     </div>
   )
