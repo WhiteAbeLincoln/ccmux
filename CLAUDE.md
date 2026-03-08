@@ -53,3 +53,7 @@ Use `rodney --help` for the full command reference. Key capabilities:
 - **Accessibility**: `ax-tree`, `ax-find`, `ax-node` — query the accessibility tree
 - **Viewport**: `viewport` (get), `viewport 390 844` (set mobile), `viewport --reset` (restore default) — persists across commands
 - **Waits**: `wait <selector>`, `waitload`, `waitstable`, `waitidle`
+
+## Known Issues
+
+- **Task list rendering**: TaskCreate/TaskUpdate runs that are split across multiple groups (separated by non-task tool calls) each only show the tasks from their own events. Later groups with TaskUpdate-only events resolve descriptions from the global toolUseMap, but the task list doesn't carry forward the full cumulative state from prior groups. Needs rework to maintain a running task snapshot across all groups.

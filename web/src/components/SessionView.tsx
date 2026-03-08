@@ -62,6 +62,8 @@ export default function SessionView() {
 
     getToolUse: (key) => toolUseMap.get(key),
     getToolResult: (key) => toolResultMap.get(key),
+
+    toolUseMap: () => toolUseMap,
   }
 
   const baseMessages = createMemo(() => {
@@ -81,14 +83,17 @@ export default function SessionView() {
         base.length,
       ),
     ]
-    // if last base is grouped and first live is grouped, merge them
+    // if last base and first live share the same multi-item mode, merge them
     if (base.length > 0 && live.length > 0) {
       const lastBase = base[base.length - 1]
       const firstLive = live[0]
-      if (lastBase.mode === 'grouped' && firstLive.mode === 'grouped') {
+      if (
+        (lastBase.mode === 'grouped' && firstLive.mode === 'grouped') ||
+        (lastBase.mode === 'task-list' && firstLive.mode === 'task-list')
+      ) {
         return [
           ...base.slice(0, -1),
-          { items: [...lastBase.items, ...firstLive.items], mode: 'grouped' },
+          { items: [...lastBase.items, ...firstLive.items], mode: lastBase.mode },
           ...live.slice(1),
         ]
       }

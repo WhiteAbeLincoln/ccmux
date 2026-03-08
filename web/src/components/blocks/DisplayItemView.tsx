@@ -9,7 +9,10 @@ import {
   Show,
 } from 'solid-js'
 import { Dynamic } from 'solid-js/web'
-import type { DisplayItemWithMode, DisplayItem } from '../../lib/display-item'
+import type {
+  DisplayItemWithMode,
+  DisplayItem,
+} from '../../lib/display-item'
 import { JsonTree } from '../../lib/json-tree'
 import { upperFirst } from '../../lib/util'
 import { SessionContext } from '../session-context'
@@ -20,15 +23,18 @@ import ToolUseBlockView, { toolExtraLabel } from './ToolUseBlockView'
 import mb from './MessageBlock.module.css'
 import tb from './ThinkingBlockView.module.css'
 import rer from '../RawEventRow.module.css'
+import tl from './TaskListView.module.css'
 import RawEventRow from '../RawEventRow'
 
 export function DisplayItemView(props: {
   event: DisplayItemWithMode
   idx: number
 }): JSX.Element {
-  const displayEvents = createMemo(() =>
-    props.event.mode === 'grouped' ? props.event.items : [props.event.item],
-  )
+  const displayEvents = createMemo(() => {
+    const e = props.event
+    if (e.mode === 'grouped' || e.mode === 'task-list') return e.items
+    return [e.item]
+  })
   const ctx = useContext(SessionContext)
   return (
     <Switch>
@@ -38,6 +44,15 @@ export function DisplayItemView(props: {
         </For>
       </Match>
       <Match when={props.event.mode === 'hidden'}>{null}</Match>
+      <Match
+        when={
+          props.event.mode === 'task-list'
+            ? (props.event as Extract<DisplayItemWithMode, { mode: 'task-list' }>)
+            : undefined
+        }
+      >
+        {(e) => <TaskListGroup events={e().items} />}
+      </Match>
       <Match
         when={
           props.event.mode === 'grouped' && props.event.items.length > 1
@@ -51,12 +66,148 @@ export function DisplayItemView(props: {
       </Match>
       <Match when={true}>
         <RenderDisplayItem
-          event={
-            props.event as Exclude<DisplayItemWithMode, { mode: 'hidden' }>
-          }
+          event={props.event as SingleItemMode}
         />
       </Match>
     </Switch>
+  )
+}
+
+function TaskListGroup(props: { events: DisplayItem[] }) {
+  const ctx = useContext(SessionContext)
+  const id = () => {
+    const first = props.events[0]
+    const last = props.events[props.events.length - 1]
+    return `group-${first.id}-${last.id}`
+  }
+
+  type Task = { subject: string; status: string }
+
+  // Build a global task description lookup from all TaskCreate events in the session
+  const taskDescriptions = createMemo(() => {
+    const descs = new Map<string, string>()
+    for (const [, toolUse] of ctx.toolUseMap?.() ?? []) {
+      if (toolUse.content.name !== 'TaskCreate') continue
+      const input = toolUse.content.input as Record<string, unknown> | undefined
+      if (!input) continue
+      // Get task number from tool result: "Task #1 created successfully"
+      const result = ctx.getToolResult(toolUse.content.id)
+      const resultText =
+        typeof result?.content?.content === 'string'
+          ? result.content.content
+          : ''
+      const numMatch = resultText.match(/#(\d+)/)
+      if (numMatch) {
+        descs.set(
+          numMatch[1],
+          (input.description ?? input.subject ?? '') as string,
+        )
+      }
+    }
+    return descs
+  })
+
+  const tasks = createMemo(() => {
+    const taskMap = new Map<string, Task>()
+    let createCounter = 0
+
+    for (const evt of props.events) {
+      if (evt.kind !== 'tool-use') continue
+      const input = evt.content.input as Record<string, unknown> | undefined
+      if (!input) continue
+
+      if (evt.content.name === 'TaskCreate') {
+        // Get task number from tool result
+        const result = ctx.getToolResult(evt.content.id)
+        const resultText =
+          typeof result?.content?.content === 'string'
+            ? result.content.content
+            : ''
+        const numMatch = resultText.match(/#(\d+)/)
+        createCounter++
+        const taskId = numMatch ? numMatch[1] : String(createCounter)
+
+        taskMap.set(taskId, {
+          subject:
+            ((input.description ?? input.subject ?? '') as string) ||
+            `Task ${taskId}`,
+          status: 'pending',
+        })
+      } else if (evt.content.name === 'TaskUpdate') {
+        const taskId = (input.task_id ?? input.taskId ?? '') as string
+        const status = (input.status ?? '') as string
+        if (taskId && status) {
+          const existing = taskMap.get(taskId)
+          if (existing) {
+            existing.status = status
+          } else {
+            // Look up description from global TaskCreate events
+            const desc = taskDescriptions().get(taskId)
+            taskMap.set(taskId, {
+              subject: desc || `Task ${taskId}`,
+              status,
+            })
+          }
+        }
+      }
+    }
+    const entries = [...taskMap.entries()]
+    entries.sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+    return entries
+  })
+
+  const completed = () =>
+    tasks().filter(([, t]) => t.status === 'completed').length
+
+  const isRaw = () => ctx.displayAsRaw(id())
+
+  return (
+    <>
+      <MessageBlock
+        kind="collapsed"
+        id={id()}
+        expanded={ctx.isExpanded(id())}
+        onExpand={() => ctx.toggleExpanded(id())}
+        label={
+          <>Tasks ({completed()}/{tasks().length} completed)</>
+        }
+        class={tl['task-list']}
+        isRaw={isRaw()}
+        onToggleRaw={() => ctx.toggleRawDisplay(id())}
+      >
+        <div class={tl['task-items']}>
+          <For each={tasks()}>
+            {([, task]) => (
+              <div
+                class={tl['task-item']}
+                classList={{
+                  [tl['task-completed']]: task.status === 'completed',
+                  [tl['task-deleted']]: task.status === 'deleted',
+                }}
+              >
+                <span class={tl['task-checkbox']}>
+                  {task.status === 'completed'
+                    ? '\u2611'
+                    : task.status === 'in_progress'
+                      ? '\u25D1'
+                      : task.status === 'deleted'
+                        ? '\u2612'
+                        : '\u2610'}
+                </span>
+                <span>{task.subject}</span>
+              </div>
+            )}
+          </For>
+        </div>
+      </MessageBlock>
+      <Show when={isRaw()}>
+        <div class={rer['raw-inline']}>
+          <For each={props.events}>
+            {(evt) => <JsonTree value={evt.event} defaultExpandDepth={1} />}
+          </For>
+        </div>
+      </Show>
+    </>
   )
 }
 
@@ -96,9 +247,12 @@ function GroupedEvent(props: { events: DisplayItem[] }) {
   )
 }
 
-function RenderDisplayItem(props: {
-  event: Exclude<DisplayItemWithMode, { mode: 'hidden' }>
-}) {
+type SingleItemMode = Exclude<
+  DisplayItemWithMode,
+  { mode: 'hidden' | 'task-list' }
+>
+
+function RenderDisplayItem(props: { event: SingleItemMode }) {
   // we already handle the case where a grouped event has multiple items, so if it's grouped it must have exactly 1 item
   const displayItem = () =>
     props.event.mode === 'grouped' ? props.event.items[0] : props.event.item

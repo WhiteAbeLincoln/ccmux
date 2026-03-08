@@ -32,15 +32,24 @@ export type DisplayItem = (
 ) &
   DisplayItemCommon
 
-export type DisplayMode = 'full' | 'collapsed' | 'grouped' | 'hidden'
+export type DisplayMode =
+  | 'full'
+  | 'collapsed'
+  | 'grouped'
+  | 'task-list'
+  | 'hidden'
 
 // using the mapped object + ValuesOf here
 // makes this a discriminated union so we can use Exclude later
 export type DisplayItemWithMode =
   | ValuesOf<{
-      [k in Exclude<DisplayMode, 'grouped'>]: { item: DisplayItem; mode: k }
+      [k in Exclude<DisplayMode, 'grouped' | 'task-list'>]: {
+        item: DisplayItem
+        mode: k
+      }
     }>
   | { items: DisplayItem[]; mode: 'grouped' }
+  | { items: DisplayItem[]; mode: 'task-list' }
 
 export type DisplayModeOpts = {
   [k in Exclude<DisplayItem['kind'], 'tool-use'>]: DisplayMode
@@ -60,6 +69,10 @@ export const defaultDisplayModeOpts: DisplayModeOpts = {
     by_name: {
       Bash: 'full',
       AskUserQuestion: 'full',
+      TaskCreate: 'task-list',
+      TaskUpdate: 'task-list',
+      TaskGet: 'task-list',
+      TaskList: 'task-list',
     },
   },
   // we display the 'tool-use' instead
@@ -114,31 +127,52 @@ export function* eventsToDisplayItems(
   displayOpts: DisplayModeOpts = defaultDisplayModeOpts,
 ): Generator<DisplayItemWithMode, void, unknown> {
   const groupedAcc: DisplayItem[] = []
+  const taskAcc: DisplayItem[] = []
+
+  function* flushGrouped() {
+    if (groupedAcc.length > 0) {
+      yield { items: [...groupedAcc], mode: 'grouped' as const }
+      groupedAcc.length = 0
+    }
+  }
+  function* flushTasks() {
+    if (taskAcc.length > 0) {
+      yield { items: [...taskAcc], mode: 'task-list' as const }
+      taskAcc.length = 0
+    }
+  }
+
   for (const [idx, evt] of enumerate(evts, startIndex)) {
     for (const item of eventToDisplayItems(evt, idx)) {
       const displayMode = getDisplayMode(item, displayOpts)
 
-      if (displayMode === 'grouped') {
-        groupedAcc.push(item)
-        continue
-      }
-      if (displayMode !== 'hidden' && groupedAcc.length > 0) {
-        yield { items: [...groupedAcc], mode: 'grouped' }
-        groupedAcc.length = 0
-      }
-
+      // Always register tool-use/tool-result regardless of display mode
       if (item.kind === 'tool-use') {
         toolUseMap.set(item.content.id, item)
       } else if (item.kind === 'tool-result') {
         toolResultMap.set(item.content.tool_use_id, item)
       }
 
+      if (displayMode === 'task-list') {
+        yield* flushGrouped()
+        taskAcc.push(item)
+        continue
+      }
+      if (displayMode === 'grouped') {
+        yield* flushTasks()
+        groupedAcc.push(item)
+        continue
+      }
+      if (displayMode !== 'hidden') {
+        yield* flushGrouped()
+        yield* flushTasks()
+      }
+
       yield { item, mode: displayMode }
     }
   }
-  if (groupedAcc.length > 0) {
-    yield { items: [...groupedAcc], mode: 'grouped' }
-  }
+  yield* flushGrouped()
+  yield* flushTasks()
 }
 
 function getDisplayMode(item: DisplayItem, opts: DisplayModeOpts): DisplayMode {

@@ -1,4 +1,4 @@
-import type { DisplayItem } from '../lib/display-item'
+import type { DisplayItem, ToolUseMap } from '../lib/display-item'
 import { createContext } from 'solid-js'
 
 type ToolUse = Extract<DisplayItem, { kind: 'tool-use' }>
@@ -14,6 +14,8 @@ export type SessionContextValue = {
   getToolUse: (key: string) => ToolUse | undefined
 
   getToolResult: (key: string) => ToolResult | undefined
+
+  toolUseMap?: () => ToolUseMap
 }
 
 const initialCounterContext: SessionContextValue = {
