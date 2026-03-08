@@ -51,4 +51,5 @@ Use `rodney --help` for the full command reference. Key capabilities:
 - **JavaScript**: `js <expression>` — expressions auto-wrap as arrow functions, results print as JSON
 - **Assertions**: `exists`, `visible`, `assert`, `count` — exit code 0 = pass, 1 = fail
 - **Accessibility**: `ax-tree`, `ax-find`, `ax-node` — query the accessibility tree
+- **Viewport**: `viewport` (get), `viewport 390 844` (set mobile), `viewport --reset` (restore default) — persists across commands
 - **Waits**: `wait <selector>`, `waitload`, `waitstable`, `waitidle`

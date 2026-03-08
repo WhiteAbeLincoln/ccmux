@@ -44,8 +44,8 @@
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  flex-shrink: 0;
-  white-space: nowrap;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .link-icon {

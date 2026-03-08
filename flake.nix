@@ -47,13 +47,15 @@
 
         rodney = pkgs.buildGoModule {
           pname = "rodney";
-          version = "0.4.0";
+          version = "0.5.0";
 
+          # Fork with `rodney viewport` command for persistent viewport resizing
+          # https://github.com/simonw/rodney/pull/33
           src = pkgs.fetchFromGitHub {
-            owner = "simonw";
+            owner = "matthewbjones";
             repo = "rodney";
-            rev = "9e7ae93900bcb5316d02623706bc8861feec836f";
-            hash = "sha256-/iGsaMfK8zeUkTXwU63mAAb4VpsllG87EH8ycoFZs5k=";
+            rev = "d1281d2a0f5d36b1eccf26f08811604b1118b373";
+            hash = "sha256-x39Y51rvJdMBFItkPoo7B4UGFRi6B9W8trrNzLFOv0I=";
           };
 
           vendorHash = "sha256-h4U43W3hLoF+p25/jNRaW8okeEzAZQEmKtwB5l4kGW4=";
