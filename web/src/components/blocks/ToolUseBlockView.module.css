@@ -252,6 +252,28 @@
   margin-top: 0.35rem;
 }
 
+/* --- TOOL SEARCH --- */
+
+.ts-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.ts-tool-badge {
+  font-size: 0.75rem;
+  font-family: monospace;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.ts-total {
+  font-size: 0.7rem;
+  opacity: 0.4;
+  align-self: center;
+}
+
 .bash-output {
   margin: 0.25rem 0 0;
   padding: 0.5rem 0.75rem;

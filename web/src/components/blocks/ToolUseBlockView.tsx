@@ -90,6 +90,7 @@ export function toolExtraLabel(evt: DisplayItem): JSX.Element {
         </>
       )
     case 'WebSearch':
+    case 'ToolSearch':
       return input.query ? (
         <span class={tu['bash-desc']}>{input.query as string}</span>
       ) : null
@@ -146,6 +147,7 @@ const toolUseMap: {
   Grep: GrepView,
   Agent: AgentView,
   WebSearch: WebSearchView,
+  ToolSearch: ToolSearchView,
 }
 
 type ToolViewProps = {
@@ -1004,6 +1006,52 @@ function WebSearchView(props: ToolViewProps): JSX.Element {
             </Show>
           </div>
         </Show>
+      </Show>
+    </div>
+  )
+}
+
+// --- ToolSearch ---
+
+function ToolSearchView(props: ToolViewProps): JSX.Element {
+  const input = () => toolInput<{ query?: string; max_results?: number }>(props)
+
+  useExtraLabel(() => {
+    const q = input()?.query
+    return q ? <span class={tu['bash-desc']}>{q}</span> : null
+  })
+
+  type ToolSearchResult = {
+    query: string
+    matches: string[]
+    total_deferred_tools?: number
+  }
+
+  const result = () => {
+    if (!props.toolResult) return undefined
+    return props.toolResult.event.toolUseResult as ToolSearchResult | undefined
+  }
+
+  const tools = () => result()?.matches ?? []
+  const totalDeferred = () => result()?.total_deferred_tools
+
+  return (
+    <div class={tu['tool-details']}>
+      <Show when={tools().length > 0}>
+        <div class={tu['ts-tools']}>
+          <For each={tools()}>
+            {(tool) => (
+              <span class={tu['ts-tool-badge']}>{tool}</span>
+            )}
+          </For>
+          <Show when={totalDeferred()}>
+            {(n) => (
+              <span class={tu['ts-total']}>
+                {n()} deferred tools available
+              </span>
+            )}
+          </Show>
+        </div>
       </Show>
     </div>
   )
