@@ -876,6 +876,23 @@ function GrepGroupView(props: { group: GrepGroup }): JSX.Element {
 
 // --- Agent ---
 
+/** Extract text from agent tool result content blocks (array of {text: "..."} objects). */
+function agentOutputText(props: ToolViewProps): string {
+  const content = toolResultContent(props)
+  if (Array.isArray(content)) {
+    const texts = content
+      .filter(
+        (item): item is { text: string } =>
+          typeof item === 'object' &&
+          item != null &&
+          typeof (item as Record<string, unknown>).text === 'string',
+      )
+      .map((item) => item.text)
+    if (texts.length > 0) return texts.join('\n')
+  }
+  return toolResultString(props)
+}
+
 function AgentView(props: ToolViewProps): JSX.Element {
   const input = () =>
     toolInput<{
@@ -933,9 +950,9 @@ function AgentView(props: ToolViewProps): JSX.Element {
               {ctx.isExpanded(outputId()) ? '\u25BE' : '\u25B8'} Output
             </button>
             <Show when={ctx.isExpanded(outputId())}>
-              <pre class={ab['agent-output']}>
-                {truncate(toolResultString(props), 5000)}
-              </pre>
+              <div class={ab['agent-output']}>
+                <Prose text={truncate(agentOutputText(props), 5000)} />
+              </div>
             </Show>
           </div>
         )}

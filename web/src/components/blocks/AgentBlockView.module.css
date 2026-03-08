@@ -30,11 +30,9 @@
   background: color-mix(in srgb, currentColor 6%, transparent);
   border-radius: 4px;
   font-size: 0.8rem;
-  font-family: monospace;
   line-height: 1.4;
   overflow-x: auto;
   max-height: 400px;
   overflow-y: auto;
-  white-space: pre-wrap;
   word-break: break-word;
 }
