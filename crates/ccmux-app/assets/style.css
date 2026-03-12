@@ -327,11 +327,11 @@ body {
     font-size: 0.75rem;
     color: var(--text-muted);
     font-family: var(--font-mono);
-    flex-shrink: 0;
+    white-space: nowrap;
 }
 
-/* Scrollable middle section for metadata */
-.message-meta {
+/* Scrollable middle section: extra label + spacer + metadata */
+.header-middle {
     display: flex;
     align-items: center;
     gap: 0.4rem;
@@ -341,28 +341,32 @@ body {
     scrollbar-width: none;
     -ms-overflow-style: none;
     white-space: nowrap;
-    opacity: 0.65;
 }
 
-.message-meta::-webkit-scrollbar {
+.header-middle::-webkit-scrollbar {
     display: none;
 }
 
-.message-meta-model,
-.message-meta-tokens,
-.message-meta-uuid {
+/* Lower opacity on full-mode headers (collapsed/minimal already muted) */
+.message-block:not(.message-block-minimal) .header-middle {
+    opacity: 0.65;
+}
+
+.header-spacer {
+    flex: 1;
+}
+
+.message-meta-item {
     font-size: 0.75rem;
     font-family: var(--font-mono);
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .message-meta-dot {
     font-size: 0.75rem;
     opacity: 0.5;
-}
-
-.message-header-spacer {
-    flex: 1;
-    min-width: 0.25rem;
+    flex-shrink: 0;
 }
 
 /* Action buttons */
@@ -635,21 +639,15 @@ body {
 }
 
 
-.message-block-minimal .message-header-minimal {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
+.message-block-minimal .message-header {
     padding: 0.25rem 0.5rem;
     cursor: pointer;
-    font-size: 0.75rem;
-    font-family: var(--font-mono);
     opacity: 0.35;
-    user-select: none;
     border-radius: 4px;
-    min-width: 0;
+    background: transparent;
 }
 
-.message-block-minimal .message-header-minimal:hover {
+.message-block-minimal .message-header:hover {
     opacity: 0.7;
     background: color-mix(in srgb, currentColor 4%, transparent);
 }

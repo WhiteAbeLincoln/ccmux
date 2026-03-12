@@ -33,95 +33,51 @@ pub fn MessageBlock(
 
     let has_raw = raw.is_some();
 
+    // Shared raw view rendering
+    let raw_view = show_raw.then(|| {
+        rsx! {
+            div { class: "raw-inline",
+                if let Some(ref v) = raw {
+                    if result_raw.is_some() {
+                        div { class: "raw-inline-label", "tool_use" }
+                    }
+                    JsonTree { value: v.clone(), default_expand_depth: 1 }
+                }
+                if let Some(ref rv) = result_raw {
+                    div { class: "raw-inline-label", "tool_result" }
+                    JsonTree { value: rv.clone(), default_expand_depth: 1 }
+                }
+            }
+        }
+    });
+
     if minimal {
-        // Minimal mode: single-line row, click to expand to full mode
+        // Minimal mode: single-line row, click header to expand
         rsx! {
             div {
                 class: if open() { "message-block {border_class} message-block-minimal message-block-expanded" } else { "message-block {border_class} message-block-minimal" },
                 div {
-                    class: "message-header-minimal",
+                    class: "message-header",
                     onclick: move |_| {
                         open.toggle();
                     },
+                    // Fixed: caret + label
                     span { class: "message-caret",
                         if open() { "\u{25BE}" } else { "\u{25B8}" }
                     }
                     span { class: "message-label", "{label}" }
-                    if let Some(extra) = &extra_label {
-                        span { class: "message-extra-label", "{extra}" }
-                    }
-                    if open() && has_raw {
-                        span { class: "message-header-spacer" }
-                        button {
-                            class: if show_raw { "message-raw-toggle message-raw-toggle-active" } else { "message-raw-toggle" },
-                            title: "Toggle raw JSON",
-                            onclick: move |e| {
-                                e.stop_propagation();
-                                raw_open.toggle();
-                            },
-                            "{{}}"
+                    // Scrollable middle: extra label + spacer + meta
+                    span { class: "header-middle",
+                        if let Some(extra) = &extra_label {
+                            span { class: "message-extra-label", "{extra}" }
                         }
-                    }
-                }
-                if open() {
-                    div { class: "message-body",
-                        {children}
-                        if show_raw {
-                            div { class: "raw-inline",
-                                if let Some(ref v) = raw {
-                                    if result_raw.is_some() {
-                                        div { class: "raw-inline-label", "tool_use" }
-                                    }
-                                    JsonTree { value: v.clone(), default_expand_depth: 1 }
-                                }
-                                if let Some(ref rv) = result_raw {
-                                    div { class: "raw-inline-label", "tool_result" }
-                                    JsonTree { value: rv.clone(), default_expand_depth: 1 }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    } else {
-        // Full mode: left border, header with metadata + action buttons, expandable body
-        rsx! {
-            div { class: "message-block {border_class}",
-                div { class: "message-header",
-                    // Left: label section
-                    span { class: "message-label", "{label}" }
-                    if let Some(extra) = &extra_label {
-                        span { class: "message-extra-label", "{extra}" }
-                    }
-
-                    // Middle: metadata (model, tokens, uuid)
-                    div { class: "message-meta",
+                        span { class: "header-spacer" }
                         if let Some(ref m) = meta {
-                            if let Some(ref model) = m.model {
-                                span { class: "message-meta-model", "{model}" }
-                            }
-                            if m.model.is_some() && m.tokens.is_some() {
-                                span { class: "message-meta-dot", "\u{00B7}" }
-                            }
-                            if let Some(tokens) = m.tokens {
-                                span { class: "message-meta-tokens", "{tokens} tok" }
-                            }
-                            if (m.model.is_some() || m.tokens.is_some()) && m.uuid.is_some() {
-                                span { class: "message-meta-dot", "\u{00B7}" }
-                            }
-                            if let Some(ref uuid) = m.uuid {
-                                span { class: "message-meta-uuid", "{&uuid[..uuid.len().min(6)]}" }
-                            }
+                            MetaFields { meta: m.clone() }
                         }
                     }
-
-                    // Spacer
-                    span { class: "message-header-spacer" }
-
-                    // Action buttons - kebab menu on small screens
+                    // Fixed end: buttons
                     div { class: "message-actions",
-                        // Raw toggle button (visible on large screens)
                         if has_raw {
                             button {
                                 class: if show_raw { "message-raw-toggle message-raw-toggle-active" } else { "message-raw-toggle" },
@@ -133,7 +89,46 @@ pub fn MessageBlock(
                                 "{{}}"
                             }
                         }
-                        // Collapse toggle (if collapsible)
+                    }
+                }
+                if open() {
+                    div { class: "message-body",
+                        {children}
+                        {raw_view}
+                    }
+                }
+            }
+        }
+    } else {
+        // Full mode: left border, header with metadata + action buttons, expandable body
+        rsx! {
+            div { class: "message-block {border_class}",
+                div { class: "message-header",
+                    // Fixed: label
+                    span { class: "message-label", "{label}" }
+                    // Scrollable middle: extra label + spacer + meta
+                    span { class: "header-middle",
+                        if let Some(extra) = &extra_label {
+                            span { class: "message-extra-label", "{extra}" }
+                        }
+                        span { class: "header-spacer" }
+                        if let Some(ref m) = meta {
+                            MetaFields { meta: m.clone() }
+                        }
+                    }
+                    // Fixed end: action buttons
+                    div { class: "message-actions",
+                        if has_raw {
+                            button {
+                                class: if show_raw { "message-raw-toggle message-raw-toggle-active" } else { "message-raw-toggle" },
+                                title: "Toggle raw JSON",
+                                onclick: move |e| {
+                                    e.stop_propagation();
+                                    raw_open.toggle();
+                                },
+                                "{{}}"
+                            }
+                        }
                         if collapsible {
                             button {
                                 class: "message-collapse-toggle",
@@ -199,23 +194,32 @@ pub fn MessageBlock(
                 if open() {
                     div { class: "message-body",
                         {children}
-                        if show_raw {
-                            div { class: "raw-inline",
-                                if let Some(ref v) = raw {
-                                    if result_raw.is_some() {
-                                        div { class: "raw-inline-label", "tool_use" }
-                                    }
-                                    JsonTree { value: v.clone(), default_expand_depth: 1 }
-                                }
-                                if let Some(ref rv) = result_raw {
-                                    div { class: "raw-inline-label", "tool_result" }
-                                    JsonTree { value: rv.clone(), default_expand_depth: 1 }
-                                }
-                            }
-                        }
+                        {raw_view}
                     }
                 }
             }
+        }
+    }
+}
+
+/// Renders metadata fields (model, tokens, uuid) inline.
+#[component]
+fn MetaFields(meta: ItemMeta) -> Element {
+    rsx! {
+        if let Some(ref model) = meta.model {
+            span { class: "message-meta-item", "{model}" }
+        }
+        if meta.model.is_some() && meta.tokens.is_some() {
+            span { class: "message-meta-dot", "\u{00B7}" }
+        }
+        if let Some(tokens) = meta.tokens {
+            span { class: "message-meta-item", "{tokens} tok" }
+        }
+        if (meta.model.is_some() || meta.tokens.is_some()) && meta.uuid.is_some() {
+            span { class: "message-meta-dot", "\u{00B7}" }
+        }
+        if let Some(ref uuid) = meta.uuid {
+            span { class: "message-meta-item", "{&uuid[..uuid.len().min(6)]}" }
         }
     }
 }
