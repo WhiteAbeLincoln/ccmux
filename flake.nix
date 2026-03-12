@@ -46,31 +46,6 @@
             inherit cargoArtifacts;
           });
 
-        rodney = pkgs.buildGoModule {
-          pname = "rodney";
-          version = "0.5.0";
-
-          # Fork with `rodney viewport` command for persistent viewport resizing
-          # https://github.com/simonw/rodney/pull/33
-          src = pkgs.fetchFromGitHub {
-            owner = "matthewbjones";
-            repo = "rodney";
-            rev = "d1281d2a0f5d36b1eccf26f08811604b1118b373";
-            hash = "sha256-x39Y51rvJdMBFItkPoo7B4UGFRi6B9W8trrNzLFOv0I=";
-          };
-
-          vendorHash = "sha256-h4U43W3hLoF+p25/jNRaW8okeEzAZQEmKtwB5l4kGW4=";
-
-          # Tests require a running Chrome instance
-          doCheck = false;
-
-          # Remove --single-process flag that crashes on macOS
-          # https://github.com/simonw/rodney/issues/9
-          postPatch = ''
-            substituteInPlace main.go \
-              --replace-fail 'Set("single-process").' ""
-          '';
-        };
       in {
         checks = {
           crate = cclog-server;
@@ -95,8 +70,15 @@
 
         devShells.default = craneLib.devShell {
           checks = self.checks.${system};
-          # TODO: move to the web-server app
-          packages = [pkgs.bun rodney];
+          packages = [pkgs.bun pkgs.nodejs];
+          shellHook = ''
+            export NPM_CONFIG_PREFIX="$PWD/.npm-global"
+            export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
+            if [ ! -x "$NPM_CONFIG_PREFIX/bin/agent-browser" ]; then
+              echo "Installing agent-browser..."
+              npm install -g agent-browser >/dev/null 2>&1
+            fi
+          '';
         };
       }
     );

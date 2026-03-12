@@ -36,3 +36,6 @@ web/dist
 
 # Git worktrees
 .worktrees/
+
+# Local npm global prefix (nix dev shell)
+.npm-global/
