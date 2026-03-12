@@ -45,9 +45,25 @@ pub fn ToolSearchView(input: Value, result: Option<ToolResultData>) -> Element {
         }
     });
 
+    // Parse "select:Foo,Bar,Baz" queries into badge list
+    let select_items: Vec<String> = if let Some(rest) = query.strip_prefix("select:") {
+        rest.split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect()
+    } else {
+        Vec::new()
+    };
+
     rsx! {
         div { class: "tool-details",
-            if !query.is_empty() {
+            if !select_items.is_empty() {
+                div { class: "ts-tools",
+                    for item in &select_items {
+                        span { class: "ts-tool-badge", "{item}" }
+                    }
+                }
+            } else if !query.is_empty() {
                 div { class: "ts-query", "{query}" }
             }
             if !tools.is_empty() {
