@@ -36,7 +36,6 @@
     --yellow: #c8a850;
     --cyan: #6ac8d8;
     --red: #cc6a6a;
-    --font-mono: "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
     --border-user: var(--blue);
     --border-assistant: var(--green);
     --border-group: var(--blue);
@@ -59,7 +58,6 @@
         --yellow: #c8a850;
         --cyan: #6ac8d8;
         --red: #cc6a6a;
-        --font-mono: "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
         --border-user: var(--blue);
         --border-assistant: var(--green);
         --border-group: var(--blue);
@@ -1364,21 +1362,6 @@ body {
 .question-option-desc {
     color: var(--text-muted);
     font-size: 0.75rem;
-}
-
-/* Shiki syntax highlighting (legacy) */
-.shiki span {
-    color: var(--shiki-dark);
-}
-
-[data-theme="light"] .shiki span {
-    color: var(--shiki-light);
-}
-
-@media (prefers-color-scheme: light) {
-    :root:not([data-theme]) .shiki span {
-        color: var(--shiki-light);
-    }
 }
 
 /* syntect syntax highlighting */
