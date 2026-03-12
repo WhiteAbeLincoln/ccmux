@@ -33,3 +33,6 @@ web/dist
 
 # Override global gitignore that ignores [Bb]in
 !src/bin/
+
+# Git worktrees
+.worktrees/
