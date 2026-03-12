@@ -17,7 +17,7 @@ pub fn DisplayItemView(item: DisplayItem) -> Element {
                 border_class: "border-user",
                 meta,
                 raw,
-                collapsible: false,
+                collapsible: true,
                 default_open: true,
                 Prose { content }
             }
@@ -28,7 +28,7 @@ pub fn DisplayItemView(item: DisplayItem) -> Element {
                 border_class: "border-assistant",
                 meta,
                 raw,
-                collapsible: false,
+                collapsible: true,
                 default_open: true,
                 Prose { content: text }
             }
