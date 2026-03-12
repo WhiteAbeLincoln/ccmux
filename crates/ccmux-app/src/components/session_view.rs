@@ -127,6 +127,9 @@ pub fn SessionView(id: String) -> Element {
     let mut global_raw = use_signal(|| false);
     use_context_provider(|| RawModeContext { global_raw });
 
+    // Jump-to-bottom FAB state
+    let mut show_fab = use_signal(|| false);
+
     // Signal to hold live-updated items (initially None, set after load)
     let mut live_items: Signal<Option<Vec<DisplayItem>>> = use_signal(|| None);
 
@@ -190,9 +193,41 @@ pub fn SessionView(id: String) -> Element {
                             "Raw"
                         }
                     }
-                    div { class: "session-items",
+                    div {
+                        class: "session-items",
+                        onscroll: move |_evt| {
+                            spawn(async move {
+                                let result = dioxus::document::eval(
+                                    r#"
+                                    let el = document.querySelector('.session-items');
+                                    el.scrollTop + el.clientHeight < el.scrollHeight - 200
+                                "#,
+                                )
+                                .await;
+                                if let Ok(val) = result {
+                                    show_fab.set(val.as_bool().unwrap_or(false));
+                                }
+                            });
+                        },
                         for (i, item) in items.iter().enumerate() {
                             DisplayItemView { key: "{i}", item: item.clone() }
+                        }
+                    }
+                    if show_fab() {
+                        div {
+                            class: "scroll-fab",
+                            onclick: move |_| {
+                                spawn(async move {
+                                    let _ = dioxus::document::eval(
+                                        r#"
+                                        document.querySelector('.session-items')
+                                            .scrollTo({ top: 999999, behavior: 'smooth' })
+                                    "#,
+                                    )
+                                    .await;
+                                });
+                            },
+                            "\u{2193}"
                         }
                     }
                 }
