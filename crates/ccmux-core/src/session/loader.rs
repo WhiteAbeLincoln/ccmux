@@ -238,8 +238,24 @@ fn extract_json_string(line: &str, key: &str) -> Option<String> {
     let pattern = format!("\"{}\":\"", key);
     let start = line.find(&pattern)? + pattern.len();
     let rest = &line[start..];
-    let end = rest.find('"')?;
-    Some(rest[..end].to_string())
+    // Find closing quote, handling escaped quotes
+    let mut end = 0;
+    let bytes = rest.as_bytes();
+    while end < bytes.len() {
+        if bytes[end] == b'\\' {
+            end += 2; // skip escaped char
+        } else if bytes[end] == b'"' {
+            break;
+        } else {
+            end += 1;
+        }
+    }
+    if end >= bytes.len() {
+        return None;
+    }
+    let raw = &rest[..end];
+    let unescaped = raw.replace("\\\"", "\"").replace("\\\\", "\\");
+    Some(unescaped)
 }
 
 /// Extract agent mappings (parentToolUseID -> agentId) from progress events.

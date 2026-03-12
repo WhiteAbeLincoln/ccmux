@@ -115,54 +115,10 @@ pub fn extract_tool_results_from_event(raw: &Value) -> Vec<(String, ToolResultDa
 
 /// Pre-scan all raw events for tool_result content blocks in user messages.
 fn pre_scan_tool_results(raw_events: &[Value]) -> HashMap<String, ToolResultData> {
-    let mut results = HashMap::new();
-
-    for raw in raw_events {
-        let event_type = raw.get("type").and_then(|v| v.as_str()).unwrap_or("");
-        if event_type != "user" {
-            continue;
-        }
-
-        let content = raw.pointer("/message/content").and_then(|v| v.as_array());
-        let Some(items) = content else { continue };
-
-        for item in items {
-            if item.get("type").and_then(|v| v.as_str()) == Some("tool_result") {
-                let tool_use_id = item
-                    .get("tool_use_id")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string();
-
-                if tool_use_id.is_empty() {
-                    continue;
-                }
-
-                let content_val = item.get("content");
-                let output = content_val.and_then(|v| v.as_str()).map(|s| s.to_string());
-                let error = item
-                    .get("is_error")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false)
-                    .then(|| {
-                        output
-                            .clone()
-                            .unwrap_or_else(|| "unknown error".to_string())
-                    });
-
-                results.insert(
-                    tool_use_id,
-                    ToolResultData {
-                        output: if error.is_some() { None } else { output },
-                        error,
-                        raw: item.clone(),
-                    },
-                );
-            }
-        }
-    }
-
-    results
+    raw_events
+        .iter()
+        .flat_map(extract_tool_results_from_event)
+        .collect()
 }
 
 /// Convert a single event into intermediate (DisplayItem, DisplayMode) pairs.

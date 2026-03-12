@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -10,8 +11,8 @@ pub struct SessionMeta {
     pub id: String,
     pub project: String,
     pub slug: Option<String>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
     pub message_count: usize,
     pub first_message: Option<String>,
     pub project_path: Option<String>,
@@ -42,8 +43,8 @@ impl SessionMeta {
             id: info.id.clone(),
             project: info.project.clone(),
             slug: info.slug.clone(),
-            created_at: info.created_at.map(|dt| dt.to_rfc3339()),
-            updated_at: info.updated_at.map(|dt| dt.to_rfc3339()),
+            created_at: info.created_at,
+            updated_at: info.updated_at,
             message_count: info.message_count,
             first_message: info.first_message.clone(),
             project_path: info.project_path.clone(),

@@ -60,9 +60,8 @@ fn SessionCard(session: SessionMeta) -> Element {
 
     let updated = session
         .updated_at
-        .as_deref()
-        .unwrap_or("unknown")
-        .to_string();
+        .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
+        .unwrap_or_else(|| "unknown".to_string());
 
     let id = session.id.clone();
 
