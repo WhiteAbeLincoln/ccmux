@@ -165,13 +165,12 @@ pub fn MessageBlock(
 
                 if open() {
                     div { class: "message-body",
+                        {children}
                         if show_raw {
                             if let Some(ref v) = raw {
                                 { let json = serde_json::to_string_pretty(v).unwrap_or_else(|_| v.to_string());
                                 rsx! { pre { class: "raw-json-view", "{json}" } } }
                             }
-                        } else {
-                            {children}
                         }
                     }
                 }

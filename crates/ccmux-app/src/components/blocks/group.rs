@@ -56,33 +56,21 @@ fn item_kind_name(item: &DisplayItem) -> Option<String> {
 struct SummaryEntry {
     label: String,
     count: usize,
-    extra: Option<String>,
 }
 
 fn build_summary(items: &[DisplayItem]) -> Vec<SummaryEntry> {
-    // Track first-seen order using a Vec, deduplicate with HashSet
     let mut order: Vec<String> = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
     let mut counts: HashMap<String, usize> = HashMap::new();
-    // For extra label, store the last seen extra per key
-    let mut extras: HashMap<String, Option<String>> = HashMap::new();
 
     for item in items {
         let Some(key) = item_kind_name(item) else {
             continue;
         };
-        // Insert into ordered list if first occurrence
         if seen.insert(key.clone()) {
             order.push(key.clone());
         }
-        // Count occurrences
         *counts.entry(key.clone()).or_insert(0) += 1;
-        // Track extra label from last occurrence
-        let extra = match item {
-            DisplayItem::ToolUse { name, input, .. } => tool_extra_label(name, input),
-            _ => None,
-        };
-        extras.insert(key, extra);
     }
 
     order
@@ -90,7 +78,6 @@ fn build_summary(items: &[DisplayItem]) -> Vec<SummaryEntry> {
         .map(|key| SummaryEntry {
             label: key.clone(),
             count: counts.get(&key).copied().unwrap_or(1),
-            extra: extras.get(&key).cloned().flatten(),
         })
         .collect()
 }
@@ -119,9 +106,6 @@ pub fn GroupBlock(items: Vec<DisplayItem>, meta: ItemMeta) -> Element {
                         "{entry.label}"
                         if entry.count > 1 {
                             span { class: "group-count", "\u{00D7}{entry.count}" }
-                        }
-                        if let Some(extra) = &entry.extra {
-                            " {extra}"
                         }
                     }
                 }

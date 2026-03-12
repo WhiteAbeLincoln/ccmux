@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 
 use ccmux_core::display::{TaskItem, TaskStatus};
 
+#[allow(dead_code)]
 #[component]
 pub fn TaskListBlock(tasks: Vec<TaskItem>) -> Element {
     rsx! {

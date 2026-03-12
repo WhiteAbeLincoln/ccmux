@@ -20,7 +20,7 @@ pub fn ThinkingBlock(text: String) -> Element {
                     }
                 }
                 span { class: "thinking-toggle",
-                    if open() { "^" } else { "v" }
+                    if open() { "\u{25BE}" } else { "\u{25B8}" }
                 }
             }
             if open() {

@@ -5,7 +5,6 @@ use ccmux_core::display::DisplayItem;
 use super::group::GroupBlock;
 use super::message::MessageBlock;
 use super::prose::Prose;
-use super::task_list::TaskListBlock;
 use super::thinking::ThinkingBlock;
 use super::tool_use::ToolUseBlock;
 
@@ -47,9 +46,33 @@ pub fn DisplayItemView(item: DisplayItem) -> Element {
         } => rsx! {
             ToolUseBlock { name, input, result, meta, raw }
         },
-        DisplayItem::TaskList { tasks, .. } => rsx! {
-            TaskListBlock { tasks }
-        },
+        DisplayItem::TaskList { tasks, meta, raw } => {
+            // TaskList rendering is broken — display as a simple pre-formatted list for now
+            let text = tasks
+                .iter()
+                .map(|t| {
+                    let check = match t.status {
+                        ccmux_core::display::TaskStatus::Completed => "[x]",
+                        ccmux_core::display::TaskStatus::InProgress => "[~]",
+                        ccmux_core::display::TaskStatus::Cancelled => "[-]",
+                        ccmux_core::display::TaskStatus::Pending => "[ ]",
+                    };
+                    format!("{check} {}", t.subject)
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            rsx! {
+                MessageBlock {
+                    label: "Tasks",
+                    border_class: "border-tool",
+                    meta,
+                    raw,
+                    collapsible: true,
+                    default_open: true,
+                    pre { class: "task-list-text", "{text}" }
+                }
+            }
+        }
         DisplayItem::TurnDuration { duration_ms, .. } => {
             let secs = duration_ms as f64 / 1000.0;
             rsx! {

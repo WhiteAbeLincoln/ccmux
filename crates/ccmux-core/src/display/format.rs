@@ -254,14 +254,16 @@ pub fn strip_ansi(s: &str) -> String {
     result
 }
 
-/// Strip the `    N\t` line number prefixes added by the Read tool.
+/// Strip the `    N→` line number prefixes added by the Read tool.
+/// The Read tool uses `→` (U+2192) as the separator between line number and content.
 pub fn strip_read_line_numbers(s: &str) -> String {
     s.lines()
         .map(|line| {
-            if let Some(idx) = line.find('\t') {
+            // Look for `→` (U+2192) separator used by the Read tool
+            if let Some(idx) = line.find('→') {
                 let prefix = &line[..idx];
                 if prefix.trim().chars().all(|c| c.is_ascii_digit()) {
-                    return &line[idx + 1..];
+                    return &line[idx + '→'.len_utf8()..];
                 }
             }
             line
@@ -305,7 +307,7 @@ mod tests {
 
     #[test]
     fn test_strip_read_line_numbers() {
-        let input = "     1\tline one\n     2\tline two\n    10\tline ten";
+        let input = "     1\u{2192}line one\n     2\u{2192}line two\n    10\u{2192}line ten";
         let expected = "line one\nline two\nline ten";
         assert_eq!(strip_read_line_numbers(input), expected);
     }
