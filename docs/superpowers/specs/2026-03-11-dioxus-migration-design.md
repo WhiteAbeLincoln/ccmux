@@ -151,6 +151,12 @@ pub enum DisplayItem {
     Compaction {
         raw: Value,
     },
+    /// Heterogeneous group of items with Grouped display mode.
+    /// Can contain thinking blocks, compaction, and non-Full tool calls
+    /// (i.e., not Bash, AskUserQuestion, or task-related).
+    Group {
+        items: Vec<DisplayItem>,
+    },
     Other {
         raw: Value,
     },
@@ -296,7 +302,7 @@ The server tracks minimal state per connection: the kind/mode of the last emitte
 
 The client handles `StreamEvent` by:
 - `Append`: push to the items signal
-- `MergeWithPrevious`: add to the last item's group (e.g., append a thinking block to the existing `Thinking` variant's list)
+- `MergeWithPrevious`: append to the last item's group. Groups are heterogeneous — a single group can contain thinking blocks, compaction, and tool calls that aren't `Full`-mode (i.e., not Bash, AskUserQuestion, or task-related). For example, a group might accumulate: thinking → Read tool call → thinking → compaction.
 - `UpdateToolResult`: find the `ToolUse` item by id, update its `result` field
 - `UpdateTask`: find or create the task in the relevant `TaskList` item
 
