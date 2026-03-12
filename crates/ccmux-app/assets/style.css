@@ -875,6 +875,48 @@ body {
     }
 }
 
+/* Read Tool */
+.read-view {
+    padding: 0 0 0.5rem;
+}
+
+.read-filepath {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    padding: 0 0.75rem 0.35rem;
+    font-family: var(--font-mono);
+    font-style: italic;
+}
+
+.read-content {
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    background: color-mix(in srgb, currentColor 6%, transparent);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-family: var(--font-mono);
+    line-height: 1.4;
+    overflow-x: auto;
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.read-error {
+    background: color-mix(in srgb, var(--red, #ff4a6a) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--red, #ff4a6a) 30%, transparent);
+}
+
+.read-image {
+    padding: 0 0.75rem;
+}
+
+.read-image img {
+    max-width: 100%;
+    border-radius: 4px;
+}
+
 /* Loading / Error states */
 .loading {
     text-align: center;
