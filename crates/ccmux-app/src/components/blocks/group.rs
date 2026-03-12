@@ -158,17 +158,12 @@ fn GroupChild(item: DisplayItem) -> Element {
             name,
             input,
             result,
+            meta,
+            raw,
             ..
         } => {
-            let extra = tool_extra_label(&name, &input);
             rsx! {
-                MessageBlock {
-                    label: "{name}",
-                    border_class: "border-tool",
-                    extra_label: extra,
-                    minimal: true,
-                    ToolUseBlock { name, input, result }
-                }
+                ToolUseBlock { name, input, result, meta, raw, minimal: true }
             }
         }
         // Fallback: nothing to render

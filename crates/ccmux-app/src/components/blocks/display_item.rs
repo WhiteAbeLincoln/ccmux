@@ -41,9 +41,11 @@ pub fn DisplayItemView(item: DisplayItem) -> Element {
             name,
             input,
             result,
+            meta,
+            raw,
             ..
         } => rsx! {
-            ToolUseBlock { name, input, result }
+            ToolUseBlock { name, input, result, meta, raw }
         },
         DisplayItem::TaskList { tasks, .. } => rsx! {
             TaskListBlock { tasks }

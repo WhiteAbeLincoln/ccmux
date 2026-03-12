@@ -591,81 +591,6 @@ body {
     color: var(--text-muted);
 }
 
-/* Tool Use */
-.tool-use-block {
-    border-left: 3px solid var(--cyan);
-    border-radius: 4px;
-    background: var(--surface);
-    overflow: hidden;
-}
-
-.tool-use-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    cursor: pointer;
-    user-select: none;
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.tool-use-header:hover {
-    background: rgba(255, 255, 255, 0.04);
-}
-
-.tool-use-name {
-    font-size: 0.85rem;
-    font-weight: 600;
-    font-family: var(--font-mono);
-    color: var(--cyan);
-}
-
-.tool-use-badge {
-    font-size: 0.7rem;
-    background: rgba(74, 232, 255, 0.15);
-    color: var(--cyan);
-    padding: 0.1em 0.4em;
-    border-radius: 3px;
-}
-
-.tool-use-toggle {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-left: auto;
-}
-
-.tool-use-body {
-    padding: 0.75rem;
-}
-
-.tool-use-body h4 {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-muted);
-    margin-bottom: 0.4rem;
-}
-
-.tool-use-input pre,
-.tool-use-result pre {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 0.6rem;
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    line-height: 1.5;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.tool-use-result {
-    margin-top: 0.75rem;
-}
-
 .tool-result-error {
     border-left: 3px solid var(--red) !important;
 }
@@ -779,6 +704,100 @@ body {
     font-size: 0.8rem;
     color: var(--text-muted);
     padding: 0.25rem 0;
+}
+
+/* Tool blocks — generic */
+.tool-details {
+    padding: 0 0.5rem 0.5rem;
+}
+
+.tool-details pre {
+    margin: 0;
+    padding: 0.5rem;
+    background: color-mix(in srgb, currentColor 6%, transparent);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    overflow-x: auto;
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.tool-section {
+    margin-top: 0.5rem;
+}
+
+.tool-section-label {
+    font-size: 0.7rem;
+    opacity: 0.5;
+    text-transform: uppercase;
+    margin-bottom: 0.2rem;
+}
+
+/* Bash */
+.bash-view {
+    padding: 0 0 0.5rem;
+}
+
+.bash-description {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    padding: 0 0.75rem 0.35rem;
+    font-style: italic;
+}
+
+.bash-command {
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    background: color-mix(in srgb, currentColor 8%, transparent);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.bash-command code {
+    font-family: var(--font-mono);
+}
+
+.bash-output-section {
+    margin-top: 0.35rem;
+}
+
+.bash-output {
+    margin: 0.25rem 0 0;
+    padding: 0.5rem 0.75rem;
+    background: color-mix(in srgb, currentColor 6%, transparent);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-family: var(--font-mono);
+    line-height: 1.4;
+    overflow-x: auto;
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.bash-error-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    background: color-mix(in srgb, var(--red) 20%, transparent);
+    color: var(--red);
+    border: 1px solid color-mix(in srgb, var(--red) 40%, transparent);
+    padding: 0.1em 0.4em;
+    border-radius: 3px;
+    margin-bottom: 0.25rem;
+}
+
+.bash-error {
+    background: color-mix(in srgb, var(--red, #ff4a6a) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--red, #ff4a6a) 30%, transparent);
 }
 
 /* Loading / Error states */
