@@ -1,4 +1,5 @@
 pub mod pipeline;
+pub mod streaming;
 
 use std::collections::HashMap;
 
