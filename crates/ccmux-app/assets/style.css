@@ -829,7 +829,6 @@ body {
 /* Group */
 .group-block {
     border: none;
-    border-left: 3px solid var(--border-group);
     border-radius: 0;
     background: transparent;
     overflow: hidden;
