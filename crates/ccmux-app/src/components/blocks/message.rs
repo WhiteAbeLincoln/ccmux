@@ -37,7 +37,7 @@ pub fn MessageBlock(
         // Minimal mode: single-line row, click to expand to full mode
         rsx! {
             div {
-                class: "message-block {border_class} message-block-minimal",
+                class: if open() { "message-block {border_class} message-block-minimal message-block-expanded" } else { "message-block {border_class} message-block-minimal" },
                 onclick: move |_| {
                     open.toggle();
                 },

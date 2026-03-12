@@ -627,6 +627,19 @@ body {
     border-radius: 0;
 }
 
+/* Expanded minimal blocks get background + border, but not inside groups */
+.message-block-minimal.message-block-expanded {
+    background: var(--surface);
+    border-left: 3px solid var(--border);
+    border-radius: 6px;
+}
+
+.group-expanded .message-block-minimal.message-block-expanded {
+    background: transparent;
+    border-left: none;
+    border-radius: 0;
+}
+
 .message-block-minimal .message-header-minimal {
     display: flex;
     align-items: center;
