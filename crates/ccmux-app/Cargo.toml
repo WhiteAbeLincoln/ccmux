@@ -1,0 +1,13 @@
+[package]
+name = "ccmux-app"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ccmux-core = { path = "../ccmux-core" }
+dioxus = { version = "0.7", features = ["fullstack"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
