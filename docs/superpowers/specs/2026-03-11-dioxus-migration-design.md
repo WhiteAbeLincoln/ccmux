@@ -267,21 +267,38 @@ async fn stream_session_events(
 ) -> Result<TextStream, ServerFnError>
 ```
 
-Uses `notify` crate to watch the JSONL file. Maintains a server-side `StreamingPipelineState` per SSE connection that tracks:
+Uses `notify` crate to watch the JSONL file. Items are sent to the client immediately — no server-side buffering for groups.
 
-- Accumulator buffers for grouped items (thinking blocks, tool calls)
-- Tool-use/tool-result index for pairing
-- Running task state for TaskList accumulation
+Each SSE message is a JSON-serialized `StreamEvent`:
+
+```rust
+pub enum StreamEvent {
+    /// Append a new display item to the end of the list
+    Append(DisplayItem),
+    /// Merge into the last display item (e.g., add a thinking block to an
+    /// existing Thinking group, or add a tool call to a grouped ToolUse run)
+    MergeWithPrevious(DisplayItem),
+    /// Update an existing tool-use item with its result (matched by tool_use_id)
+    UpdateToolResult { tool_use_id: String, result: ToolResultData },
+    /// Update task list state (matched by task id)
+    UpdateTask(TaskItem),
+}
+```
 
 As new JSONL lines appear:
-1. Parse to `Event`
-2. Feed into the stateful pipeline, which buffers grouped items
-3. When a group is flushed (next item has a different mode, or a timeout fires), serialize the completed `DisplayItem`(s) and send via SSE
-4. On connection close, flush any remaining buffered items
+1. Parse to `Event`, run through `DisplayOpts` to determine mode
+2. If the item's mode is `Grouped` and the previous emitted item was the same kind → emit `MergeWithPrevious`
+3. If the item is a tool-result → emit `UpdateToolResult` targeting the corresponding tool-use
+4. If the item is a TaskUpdate → emit `UpdateTask` with the new state
+5. Otherwise → emit `Append`
 
-The SSE protocol sends JSON-serialized `DisplayItem` values, one per SSE `data:` line. The client deserializes and appends to its display items signal.
+The server tracks minimal state per connection: the kind/mode of the last emitted item (for merge decisions) and the tool-use index (for pairing results). No buffering — every JSONL line produces an immediate SSE message.
 
-For tool-use events, the result may arrive later. The pipeline buffers the tool-use and emits it once the corresponding tool-result arrives (or after a timeout, emitting it without a result). This matches the current behavior where tool results are hidden and their data is shown inline with the tool-use.
+The client handles `StreamEvent` by:
+- `Append`: push to the items signal
+- `MergeWithPrevious`: add to the last item's group (e.g., append a thinking block to the existing `Thinking` variant's list)
+- `UpdateToolResult`: find the `ToolUse` item by id, update its `result` field
+- `UpdateTask`: find or create the task in the relevant `TaskList` item
 
 ## Components
 
