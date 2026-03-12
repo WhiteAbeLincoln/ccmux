@@ -634,12 +634,7 @@ body {
 }
 
 .thinking-preview {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    opacity: 0.5;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: none;
     flex: 1;
     min-width: 0;
 }
