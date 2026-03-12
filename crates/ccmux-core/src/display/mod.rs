@@ -75,6 +75,10 @@ pub struct ToolResultData {
     pub output: Option<String>,
     pub error: Option<String>,
     pub raw: Value,
+    /// Top-level `toolUseResult` value from the enclosing user event, when present.
+    /// Contains structured data for tools like AskUserQuestion.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_use_result: Option<Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -51,6 +51,18 @@ pub fn ToolUseBlock(
                 "Glob" => rsx! {
                     tools::glob::GlobView { input, result }
                 },
+                "ToolSearch" => rsx! {
+                    tools::tool_search::ToolSearchView { input, result }
+                },
+                "WebSearch" => rsx! {
+                    tools::web_search::WebSearchView { input, result }
+                },
+                "Agent" => rsx! {
+                    tools::agent::AgentView { input, result }
+                },
+                "AskUserQuestion" => rsx! {
+                    tools::ask_user::AskUserView { input, result }
+                },
                 _ => rsx! {
                     GenericToolView { input, result }
                 },

@@ -75,6 +75,9 @@ pub fn extract_tool_results_from_event(raw: &Value) -> Vec<(String, ToolResultDa
         return vec![];
     };
 
+    // Capture top-level toolUseResult for structured tool results (e.g. AskUserQuestion)
+    let event_tool_use_result = raw.get("toolUseResult").cloned();
+
     let mut results = Vec::new();
     for item in items {
         if item.get("type").and_then(|v| v.as_str()) == Some("tool_result") {
@@ -106,6 +109,7 @@ pub fn extract_tool_results_from_event(raw: &Value) -> Vec<(String, ToolResultDa
                     output: if error.is_some() { None } else { output },
                     error,
                     raw: item.clone(),
+                    tool_use_result: event_tool_use_result.clone(),
                 },
             ));
         }
