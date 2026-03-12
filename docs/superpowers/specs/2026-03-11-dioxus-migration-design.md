@@ -185,13 +185,32 @@ pub enum DisplayMode {
 
 ### Display Pipeline
 
-The `events_to_display_items()` function lives in `ccmux-core/display/pipeline.rs`. It:
+The `events_to_display_items()` function lives in `ccmux-core/display/pipeline.rs`. It takes a `DisplayOpts` parameter that controls default display modes per item kind and per tool name:
 
-1. Takes `Vec<Event>` (parsed from JSONL)
+```rust
+pub struct DisplayOpts {
+    /// Default mode per DisplayItem variant (e.g., Thinking → Grouped)
+    pub defaults: HashMap<DisplayItemDiscriminant, DisplayMode>,
+    /// Per-tool-name overrides (e.g., "Bash" → Full, "TaskCreate" → TaskList)
+    pub tool_overrides: HashMap<String, DisplayMode>,
+}
+
+impl Default for DisplayOpts { /* current hardcoded defaults */ }
+```
+
+For now, `Default::default()` is always used. In the future, user preferences are loaded and passed in. The signature is:
+
+```rust
+pub fn events_to_display_items(events: Vec<Event>, opts: &DisplayOpts) -> Vec<DisplayItem>
+```
+
+The function:
+
+1. Takes `Vec<Event>` (parsed from JSONL) and `&DisplayOpts`
 2. Indexes tool-use and tool-result by UUID for parent-child linkage
 3. Pairs each tool-use with its tool-result (result is embedded in the `ToolUse` variant, not a separate item)
 4. Accumulates TaskCreate/TaskUpdate events into `TaskList` items with running state
-5. Assigns `DisplayMode` based on event type, using a default + per-name override map:
+5. Assigns `DisplayMode` by consulting `opts.tool_overrides` first (for tool events), then `opts.defaults`, falling back to hardcoded defaults. Current defaults:
    - User/assistant messages: `Full`
    - Thinking blocks: `Grouped`
    - Tool calls: `Grouped` by default, with per-name overrides:
