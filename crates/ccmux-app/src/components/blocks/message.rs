@@ -38,10 +38,11 @@ pub fn MessageBlock(
         rsx! {
             div {
                 class: if open() { "message-block {border_class} message-block-minimal message-block-expanded" } else { "message-block {border_class} message-block-minimal" },
-                onclick: move |_| {
-                    open.toggle();
-                },
-                div { class: "message-header-minimal",
+                div {
+                    class: "message-header-minimal",
+                    onclick: move |_| {
+                        open.toggle();
+                    },
                     span { class: "message-caret",
                         if open() { "\u{25BE}" } else { "\u{25B8}" }
                     }
