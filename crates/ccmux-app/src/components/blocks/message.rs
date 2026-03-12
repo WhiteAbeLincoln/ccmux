@@ -3,6 +3,7 @@ use serde_json::Value;
 
 use ccmux_core::display::ItemMeta;
 
+use super::json_tree::JsonTree;
 use crate::components::session_view::RawModeContext;
 
 #[component]
@@ -12,6 +13,9 @@ pub fn MessageBlock(
     #[props(default)] extra_label: Option<String>,
     #[props(default)] meta: Option<ItemMeta>,
     #[props(default)] raw: Option<Value>,
+    /// For tool calls: the raw tool_result event, shown alongside the tool_use raw event.
+    #[props(default)]
+    result_raw: Option<Value>,
     #[props(default = true)] collapsible: bool,
     #[props(default = true)] default_open: bool,
     #[props(default = false)] minimal: bool,
@@ -167,9 +171,17 @@ pub fn MessageBlock(
                     div { class: "message-body",
                         {children}
                         if show_raw {
-                            if let Some(ref v) = raw {
-                                { let json = serde_json::to_string_pretty(v).unwrap_or_else(|_| v.to_string());
-                                rsx! { pre { class: "raw-json-view", "{json}" } } }
+                            div { class: "raw-inline",
+                                if let Some(ref v) = raw {
+                                    if result_raw.is_some() {
+                                        div { class: "raw-inline-label", "tool_use" }
+                                    }
+                                    JsonTree { value: v.clone(), default_expand_depth: 1 }
+                                }
+                                if let Some(ref rv) = result_raw {
+                                    div { class: "raw-inline-label", "tool_result" }
+                                    JsonTree { value: rv.clone(), default_expand_depth: 1 }
+                                }
                             }
                         }
                     }

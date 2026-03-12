@@ -22,6 +22,8 @@ pub fn ToolUseBlock(
     // All other tools: default closed, collapsible
     let default_open = matches!(name.as_str(), "Bash" | "AskUserQuestion");
 
+    let result_raw = result.as_ref().map(|r| r.raw.clone());
+
     rsx! {
         MessageBlock {
             label: name.clone(),
@@ -29,6 +31,7 @@ pub fn ToolUseBlock(
             extra_label: extra,
             meta,
             raw,
+            result_raw,
             collapsible: true,
             default_open,
             minimal,

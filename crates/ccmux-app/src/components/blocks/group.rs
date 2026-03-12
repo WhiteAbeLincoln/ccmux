@@ -6,7 +6,6 @@ use serde_json::Value;
 use ccmux_core::display::{DisplayItem, ItemMeta};
 
 use super::message::MessageBlock;
-use super::thinking::ThinkingBlock;
 use super::tool_use::ToolUseBlock;
 
 /// Extract a contextual extra label string from a tool's input data.
@@ -135,7 +134,8 @@ fn GroupChild(item: DisplayItem) -> Element {
                 label: "Thinking",
                 border_class: "border-thinking",
                 minimal: true,
-                ThinkingBlock { text }
+                default_open: false,
+                pre { class: "thinking-text", "{text}" }
             }
         },
         DisplayItem::ToolUse {

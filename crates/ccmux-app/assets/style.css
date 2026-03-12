@@ -470,20 +470,116 @@ body {
     color: var(--green);
 }
 
-/* Raw JSON view */
-.raw-json-view {
-    background: color-mix(in srgb, var(--text) 5%, transparent);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 0.75rem;
+/* Raw inline view (tool_use + tool_result labels) */
+.raw-inline {
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--border);
+    margin-top: 0.5rem;
+    overflow-x: auto;
+}
+
+.raw-inline-label {
+    text-transform: uppercase;
+    opacity: 0.4;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    margin: 0.5rem 0 0.25rem;
+    font-family: var(--font-mono);
+}
+
+.raw-inline-label:first-child {
+    margin-top: 0;
+}
+
+/* JSON Tree */
+.json-tree {
     font-family: var(--font-mono);
     font-size: 0.8rem;
     line-height: 1.5;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
     max-height: 600px;
     overflow-y: auto;
+}
+
+.jt-children {
+    padding-left: 1.25rem;
+}
+
+.jt-entry {
+    white-space: nowrap;
+}
+
+.jt-key {
+    color: var(--blue);
+}
+
+.jt-colon {
+    color: var(--text-muted);
+}
+
+.jt-string {
+    color: var(--green);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.jt-number {
+    color: var(--yellow);
+}
+
+.jt-bool {
+    color: var(--yellow);
+}
+
+.jt-null {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.jt-bracket {
+    color: var(--text-muted);
+}
+
+.jt-comma {
+    color: var(--text-muted);
+}
+
+.jt-toggle {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 0.15rem;
+    font-size: 0.7rem;
+    vertical-align: baseline;
+}
+
+.jt-toggle:hover {
+    color: var(--text);
+}
+
+.jt-collapsed-badge {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 0 0.25rem;
+}
+
+.jt-collapsed-badge:hover {
+    color: var(--text);
+}
+
+.jt-more {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 0 0.25rem;
+    text-decoration: underline;
+}
+
+.jt-more:hover {
+    color: var(--text);
 }
 
 .message-body {
