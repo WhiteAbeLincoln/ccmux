@@ -29,7 +29,7 @@ crates/ccmux-core/src/
   lib.rs
   session/
     mod.rs
-    loader.rs               # discover_sessions, scan_metadata, load_session_raw
+    loader.rs               # discover_sessions, scan_metadata, load_session_raw, extract_agent_map
   events/
     mod.rs                  # Event enum, CoreFields, typed variants
     parse.rs                # JSONL line → Event parsing
@@ -89,11 +89,14 @@ pub enum Event {
 pub struct CoreFields {
     pub uuid: Option<String>,
     pub parent_uuid: Option<String>,
-    pub session_id: Option<String>,
+    pub session_id: String,
     pub timestamp: Option<DateTime<Utc>>,
-    pub cwd: Option<String>,
+    pub cwd: String,
     pub git_branch: Option<String>,
-    pub is_sidechain: Option<bool>,
+    pub is_sidechain: bool,
+    pub user_type: Option<String>,
+    pub version: Option<String>,
+    pub slug: Option<String>,
 }
 ```
 
@@ -104,30 +107,72 @@ pub struct SessionMeta {
     pub id: String,
     pub project: String,
     pub slug: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub message_count: usize,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+    pub message_count: i32,
     pub first_message: Option<String>,
-    pub file_path: PathBuf,
+    pub project_path: Option<String>,
+    pub is_sidechain: bool,
+    pub parent_session_id: Option<String>,
+    pub agent_id: Option<String>,
 }
 
-pub struct DisplayItem {
-    pub kind: DisplayItemKind,
-    pub mode: DisplayMode,
-    pub raw: serde_json::Value,       // for per-item raw toggle
-    // kind-specific payload fields
+/// DisplayItem is a Rust enum with per-variant payloads, replacing the
+/// TypeScript discriminated union. Each variant carries the data its
+/// component needs to render, plus the raw JSON for the raw toggle.
+pub enum DisplayItem {
+    UserMessage {
+        content: String,
+        raw: Value,
+    },
+    AssistantMessage {
+        text: String,
+        raw: Value,
+    },
+    Thinking {
+        text: String,
+        raw: Value,
+    },
+    ToolUse {
+        name: String,
+        tool_use_id: String,
+        input: Value,
+        result: Option<ToolResultData>,
+        raw: Value,
+    },
+    TaskList {
+        tasks: Vec<TaskItem>,
+        raw: Value,
+    },
+    TurnDuration {
+        duration_ms: u64,
+        raw: Value,
+    },
+    Compaction {
+        raw: Value,
+    },
+    Other {
+        raw: Value,
+    },
 }
 
-pub enum DisplayItemKind {
-    UserMessage,
-    AssistantMessage,
-    Thinking,
-    ToolUse,
-    ToolResult,
-    TurnDuration,
-    Compaction,
-    TaskList,
-    Other,
+pub struct ToolResultData {
+    pub output: Option<String>,
+    pub error: Option<String>,
+    pub raw: Value,
+}
+
+pub struct TaskItem {
+    pub id: String,
+    pub subject: String,
+    pub status: TaskStatus,
+}
+
+pub enum TaskStatus {
+    Pending,
+    InProgress,
+    Completed,
+    Cancelled,
 }
 
 pub enum DisplayMode {
@@ -144,13 +189,22 @@ The `events_to_display_items()` function lives in `ccmux-core/display/pipeline.r
 
 1. Takes `Vec<Event>` (parsed from JSONL)
 2. Indexes tool-use and tool-result by UUID for parent-child linkage
-3. Assigns `DisplayMode` based on event type (same rules as current TypeScript):
+3. Pairs each tool-use with its tool-result (result is embedded in the `ToolUse` variant, not a separate item)
+4. Accumulates TaskCreate/TaskUpdate events into `TaskList` items with running state
+5. Assigns `DisplayMode` based on event type, using a default + per-name override map:
    - User/assistant messages: `Full`
    - Thinking blocks: `Grouped`
-   - Tool calls: `Grouped` by default, `Full` for Bash/AskUserQuestion
-   - TaskCreate/TaskUpdate: `TaskList`
+   - Tool calls: `Grouped` by default, with per-name overrides:
+     - `Bash`, `AskUserQuestion`: `Full`
+     - `TaskCreate`, `TaskUpdate`, `TaskGet`, `TaskList`: `TaskList` (accumulated into checkbox groups)
+   - Compaction: `Grouped`
+   - Progress events: `Hidden`
    - Tool results: `Hidden` (paired with tool-use)
-4. Returns `Vec<DisplayItem>` ready for the client
+   - FileHistory, QueueOperation, Unknown: `Hidden`
+6. Groups consecutive items with the same `DisplayMode::Grouped` — flushes a group when the next item has a different mode
+7. Returns `Vec<DisplayItem>` ready for the client
+
+The pipeline also exposes an incremental interface for streaming (see Streaming section below).
 
 ## Server Functions
 
@@ -194,12 +248,21 @@ async fn stream_session_events(
 ) -> Result<TextStream, ServerFnError>
 ```
 
-Uses `notify` crate to watch the JSONL file. As new lines appear:
-1. Parse to `Event`
-2. Transform to `DisplayItem`
-3. Serialize and stream to client via SSE
+Uses `notify` crate to watch the JSONL file. Maintains a server-side `StreamingPipelineState` per SSE connection that tracks:
 
-Client deserializes and appends to its display items list.
+- Accumulator buffers for grouped items (thinking blocks, tool calls)
+- Tool-use/tool-result index for pairing
+- Running task state for TaskList accumulation
+
+As new JSONL lines appear:
+1. Parse to `Event`
+2. Feed into the stateful pipeline, which buffers grouped items
+3. When a group is flushed (next item has a different mode, or a timeout fires), serialize the completed `DisplayItem`(s) and send via SSE
+4. On connection close, flush any remaining buffered items
+
+The SSE protocol sends JSON-serialized `DisplayItem` values, one per SSE `data:` line. The client deserializes and appends to its display items signal.
+
+For tool-use events, the result may arrive later. The pipeline buffers the tool-use and emits it once the corresponding tool-result arrives (or after a timeout, emitting it without a result). This matches the current behavior where tool results are hidden and their data is shown inline with the tool-use.
 
 ## Components
 
@@ -245,6 +308,15 @@ Plain CSS files. No CSS modules, no Tailwind. Loaded via Dioxus asset system (`m
 ## Markdown Rendering
 
 `pulldown-cmark` parses markdown to events, mapped to Dioxus VNodes in the `Prose` component. Pure Rust, cross-platform. Syntax highlighting deferred to a later phase.
+
+## Error Handling
+
+Graceful degradation, matching the current behavior:
+
+- **Malformed JSONL lines**: Log a warning, skip the line, continue processing. The pipeline produces an `Other` display item with the raw text so the user can see something went wrong.
+- **Missing session file**: Return `ServerFnError` with a descriptive message. Client shows an error state.
+- **Partial reads** (file being written to): The session loader reads what's available. The streaming function picks up new lines as they appear.
+- **Broken SSE connection**: Client detects disconnect and shows a reconnect prompt or auto-reconnects.
 
 ## Build & Dev Workflow
 
