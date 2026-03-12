@@ -13,14 +13,7 @@ pub fn SessionList() -> Element {
                 div { class: "session-list",
                     h1 { class: "page-title", "Sessions" }
                     for group in groups {
-                        div { key: "{group.project}", class: "project-group",
-                            h2 { class: "project-name", "{group.project}" }
-                            div { class: "session-cards",
-                                for session in &group.sessions {
-                                    SessionCard { key: "{session.id}", session: session.clone() }
-                                }
-                            }
-                        }
+                        ProjectGroup { key: "{group.project}", project: group.project.clone(), sessions: group.sessions.clone() }
                     }
                 }
             }
@@ -35,18 +28,48 @@ pub fn SessionList() -> Element {
 }
 
 #[component]
-fn SessionCard(session: SessionMeta) -> Element {
+fn ProjectGroup(project: String, sessions: Vec<SessionMeta>) -> Element {
+    let mut collapsed = use_signal(|| false);
+    let count = sessions.len();
+
+    rsx! {
+        div { class: "project-group",
+            div {
+                class: "project-header",
+                onclick: move |_| collapsed.toggle(),
+                span { class: "project-toggle",
+                    if collapsed() { "\u{25B8}" } else { "\u{25BE}" }
+                }
+                h2 { class: "project-name", "{project}" }
+                span { class: "session-count-badge", "{count}" }
+            }
+            if !collapsed() {
+                div { class: "session-rows",
+                    for session in &sessions {
+                        SessionRow { key: "{session.id}", session: session.clone() }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn SessionRow(session: SessionMeta) -> Element {
     let preview = session
         .first_message
         .as_deref()
-        .unwrap_or("(no message)")
+        .unwrap_or("\u{2014}")
         .chars()
         .take(120)
         .collect::<String>();
 
     let updated = session
         .updated_at
-        .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
+        .map(|dt| {
+            let local = dt.with_timezone(&chrono::Local);
+            local.format("%-m/%-d/%Y, %-I:%M:%S %p").to_string()
+        })
         .unwrap_or_else(|| "unknown".to_string());
 
     let id = session.id.clone();
@@ -54,11 +77,11 @@ fn SessionCard(session: SessionMeta) -> Element {
     rsx! {
         Link {
             to: Route::SessionView { id },
-            class: "session-card",
-            div { class: "session-card-preview", "{preview}" }
-            div { class: "session-card-meta",
-                span { class: "session-card-count", "{session.message_count} events" }
-                span { class: "session-card-updated", "{updated}" }
+            class: "session-row",
+            div { class: "session-row-summary", "{preview}" }
+            div { class: "session-row-meta",
+                span { class: "session-row-date", "{updated}" }
+                span { class: "session-row-count", "{session.message_count} msgs" }
             }
         }
     }
