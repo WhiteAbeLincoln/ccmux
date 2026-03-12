@@ -311,6 +311,10 @@ body {
     min-width: 0;
 }
 
+.message-header-clickable {
+    cursor: pointer;
+}
+
 .message-header:hover {
     background: color-mix(in srgb, currentColor 4%, transparent);
 }
@@ -641,7 +645,6 @@ body {
 
 .message-block-minimal .message-header {
     padding: 0.25rem 0.5rem;
-    cursor: pointer;
     opacity: 0.35;
     border-radius: 4px;
     background: transparent;

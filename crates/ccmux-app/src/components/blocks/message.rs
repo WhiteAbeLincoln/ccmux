@@ -46,14 +46,14 @@ pub fn MessageBlock(
         div { class: "{block_class}",
             // Header — same structure for both full and minimal, styling differs via CSS
             div {
-                class: "message-header",
+                class: if collapsible { "message-header message-header-clickable" } else { "message-header" },
                 onclick: move |_| {
-                    if minimal || collapsible {
+                    if collapsible {
                         open.toggle();
                     }
                 },
-                // Fixed start: caret (minimal) + label
-                if minimal {
+                // Fixed start: caret + label
+                if collapsible {
                     span { class: "message-caret",
                         if open() { "\u{25BE}" } else { "\u{25B8}" }
                     }
@@ -84,18 +84,6 @@ pub fn MessageBlock(
                             "{{}}"
                         }
                     }
-                    if !minimal && collapsible {
-                        button {
-                            class: "message-collapse-toggle",
-                            title: if open() { "Collapse" } else { "Expand" },
-                            onclick: move |e| {
-                                e.stop_propagation();
-                                open.toggle();
-                            },
-                            if open() { "\u{25B4}" } else { "\u{25BE}" }
-                        }
-                    }
-
                     // Kebab menu (mobile, <=768px)
                     if !minimal && (has_raw || collapsible) {
                         div { class: "kebab-menu",
