@@ -6,7 +6,7 @@
 
 **Architecture:** Cargo workspace with `ccmux-core` (session parsing, event types, display pipeline) and `ccmux-app` (Dioxus fullstack). Server functions replace GraphQL. The server transforms JSONL logs into `DisplayItem`s; the client never sees raw log formats.
 
-**Tech Stack:** Rust, Dioxus 0.6 (fullstack, SSR + WASM), pulldown-cmark, notify, serde, tokio
+**Tech Stack:** Rust, Dioxus 0.7 (fullstack, SSR + WASM), pulldown-cmark, notify, serde, tokio
 
 **Spec:** `docs/superpowers/specs/2026-03-11-dioxus-migration-design.md`
 
@@ -75,7 +75,7 @@ edition = "2024"
 
 [dependencies]
 ccmux-core = { path = "../ccmux-core" }
-dioxus = { version = "0.6", features = ["fullstack"] }
+dioxus = { version = "0.7", features = ["fullstack"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
@@ -1539,7 +1539,7 @@ pub fn AppLayout() -> Element {
 - [ ] **Step 2: Implement session list component**
 
 `crates/ccmux-app/src/components/session_list.rs`:
-Note on Dioxus 0.6 API: `use_server_future` returns a `Resource`. The `?` operator suspends the component if data hasn't loaded yet (returns `VNode` via `Suspend`). After `?`, `.read()` gives `ReadableRef` which derefs to `Option<Result<...>>`. Verify this pattern compiles against the exact Dioxus 0.6 version — if the API differs, use `match sessions.read().as_ref()` without `?` instead.
+Note on Dioxus 0.7 API: `use_server_future` returns a `Resource`. The `?` operator suspends the component if data hasn't loaded yet (returns `VNode` via `Suspend`). After `?`, `.read()` gives `ReadableRef` which derefs to `Option<Result<...>>`. Verify this pattern compiles against the exact Dioxus 0.7 version — if the API differs, use `match sessions.read().as_ref()` without `?` instead.
 
 ```rust
 use std::collections::BTreeMap;
@@ -2605,7 +2605,7 @@ fn update_tool_result_in_item(
 }
 ```
 
-Note: The exact client-side consumption of Dioxus `TextStream` may need adjustment based on the Dioxus 0.6 streaming API. The `apply_stream_event` logic is the important part and is independent of the transport.
+Note: The exact client-side consumption of Dioxus `TextStream` may need adjustment based on the Dioxus 0.7 streaming API. The `apply_stream_event` logic is the important part and is independent of the transport.
 
 - [ ] **Step 4: Verify streaming works**
 
