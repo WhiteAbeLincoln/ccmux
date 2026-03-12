@@ -117,19 +117,55 @@ body {
 
 .session-header {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 1rem;
     margin-bottom: 1.5rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.session-back-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.session-back-link:hover {
+    color: #6eb3ff;
+    text-decoration: underline;
 }
 
 .session-title {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 600;
 }
 
-.session-item-count {
-    font-size: 0.85rem;
+.session-header-spacer {
+    flex: 1;
+}
+
+.session-raw-toggle {
+    all: unset;
+    font-size: 0.8rem;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
     color: var(--text-muted);
+    transition: color 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+}
+
+.session-raw-toggle:hover {
+    color: var(--text);
+    border-color: var(--accent);
+}
+
+.session-raw-toggle-active {
+    color: #4a4;
+    border-color: #4a4;
 }
 
 .session-items {
@@ -161,11 +197,11 @@ body {
 .message-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 0.5rem;
     padding: 0.5rem 0.75rem;
-    cursor: pointer;
     user-select: none;
     background: rgba(255, 255, 255, 0.02);
+    min-width: 0;
 }
 
 .message-header:hover {
@@ -178,15 +214,212 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--text-muted);
+    flex-shrink: 0;
 }
 
-.message-toggle {
+.message-extra-label {
     font-size: 0.75rem;
     color: var(--text-muted);
+    font-family: var(--font-mono);
+    flex-shrink: 0;
+}
+
+/* Scrollable middle section for metadata */
+.message-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    white-space: nowrap;
+    opacity: 0.65;
+}
+
+.message-meta::-webkit-scrollbar {
+    display: none;
+}
+
+.message-meta-model,
+.message-meta-tokens,
+.message-meta-uuid {
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+}
+
+.message-meta-dot {
+    font-size: 0.75rem;
+    opacity: 0.5;
+}
+
+.message-header-spacer {
+    flex: 1;
+    min-width: 0.25rem;
+}
+
+/* Action buttons */
+.message-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+.message-raw-toggle {
+    all: unset;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    cursor: pointer;
+    opacity: 0.3;
+    transition: opacity 0.15s;
+    padding: 0 0.2rem;
+    flex-shrink: 0;
+}
+
+.message-raw-toggle:hover {
+    opacity: 1;
+}
+
+.message-raw-toggle-active {
+    opacity: 1;
+    color: #4a4;
+}
+
+.message-collapse-toggle {
+    all: unset;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 0.2rem;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+}
+
+.message-collapse-toggle:hover {
+    opacity: 1;
+}
+
+/* Kebab menu (hidden on large screens, shown on mobile) */
+.kebab-menu {
+    position: relative;
+    display: none;
+    flex-shrink: 0;
+}
+
+.kebab-trigger {
+    all: unset;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0 0.25rem;
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+
+.kebab-trigger:hover {
+    opacity: 1;
+}
+
+.kebab-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 99;
+}
+
+.kebab-dropdown {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    min-width: 80px;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.kebab-item {
+    all: unset;
+    display: block;
+    width: 100%;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    color: var(--text-muted);
+    box-sizing: border-box;
+}
+
+.kebab-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+}
+
+.kebab-item-active {
+    color: #4a4;
+}
+
+/* Raw JSON view */
+.raw-json-view {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 600px;
+    overflow-y: auto;
 }
 
 .message-body {
     padding: 0.75rem;
+}
+
+/* Minimal mode */
+.message-block-minimal .message-header-minimal {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    opacity: 0.35;
+    user-select: none;
+    border-radius: 4px;
+    min-width: 0;
+}
+
+.message-block-minimal .message-header-minimal:hover {
+    opacity: 0.7;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.message-caret {
+    font-size: 0.65rem;
+    width: 0.8em;
+    flex-shrink: 0;
+}
+
+/* Mobile: hide action buttons, show kebab */
+@media (max-width: 768px) {
+    .message-raw-toggle,
+    .message-collapse-toggle {
+        display: none;
+    }
+
+    .kebab-menu {
+        display: block;
+    }
 }
 
 /* Prose / Markdown */

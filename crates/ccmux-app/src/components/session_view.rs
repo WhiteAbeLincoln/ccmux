@@ -4,7 +4,14 @@ use ccmux_core::display::streaming::StreamEvent;
 use ccmux_core::display::{DisplayItem, ItemMeta};
 
 use crate::components::blocks::display_item::DisplayItemView;
+use crate::routes::Route;
 use crate::server_fns::{get_session, stream_session_events};
+
+/// Global context for raw mode toggle (show raw JSON for all blocks).
+#[derive(Clone, Copy)]
+pub struct RawModeContext {
+    pub global_raw: Signal<bool>,
+}
 
 /// Apply a stream event to a mutable list of display items.
 fn apply_stream_event(items: &mut Vec<DisplayItem>, event: StreamEvent) {
@@ -116,6 +123,10 @@ pub fn SessionView(id: String) -> Element {
         async move { get_session(sid).await }
     })?;
 
+    // Global raw mode signal
+    let mut global_raw = use_signal(|| false);
+    use_context_provider(|| RawModeContext { global_raw });
+
     // Signal to hold live-updated items (initially None, set after load)
     let mut live_items: Signal<Option<Vec<DisplayItem>>> = use_signal(|| None);
 
@@ -154,20 +165,30 @@ pub fn SessionView(id: String) -> Element {
         }
     });
 
+    let short_id = id[..id.len().min(6)].to_string();
+
     match &*session_resource.read() {
         Some(Ok(response)) => {
-            let project = response.meta.project.clone();
             let items = live_items
                 .read()
                 .as_ref()
                 .cloned()
                 .unwrap_or_else(|| response.items.clone());
-            let count = items.len();
             rsx! {
                 div { class: "session-view",
                     div { class: "session-header",
-                        h1 { class: "session-title", "{project}" }
-                        span { class: "session-item-count", "{count} items" }
+                        Link { class: "session-back-link", to: Route::SessionList {},
+                            "\u{2190} Back"
+                        }
+                        h1 { class: "session-title", "Session {short_id}" }
+                        span { class: "session-header-spacer" }
+                        button {
+                            class: if global_raw() { "session-raw-toggle session-raw-toggle-active" } else { "session-raw-toggle" },
+                            onclick: move |_| {
+                                global_raw.toggle();
+                            },
+                            "Raw"
+                        }
                     }
                     div { class: "session-items",
                         for (i, item) in items.iter().enumerate() {

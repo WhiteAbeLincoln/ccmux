@@ -11,13 +11,25 @@ use super::tool_use::ToolUseBlock;
 #[component]
 pub fn DisplayItemView(item: DisplayItem) -> Element {
     match item {
-        DisplayItem::UserMessage { content, .. } => rsx! {
-            MessageBlock { label: "User", border_class: "border-user",
+        DisplayItem::UserMessage { content, meta, raw } => rsx! {
+            MessageBlock {
+                label: "User",
+                border_class: "border-user",
+                meta,
+                raw,
+                collapsible: false,
+                default_open: true,
                 Prose { content }
             }
         },
-        DisplayItem::AssistantMessage { text, .. } => rsx! {
-            MessageBlock { label: "Assistant", border_class: "border-assistant",
+        DisplayItem::AssistantMessage { text, meta, raw } => rsx! {
+            MessageBlock {
+                label: "Assistant",
+                border_class: "border-assistant",
+                meta,
+                raw,
+                collapsible: false,
+                default_open: true,
                 Prose { content: text }
             }
         },
@@ -41,8 +53,14 @@ pub fn DisplayItemView(item: DisplayItem) -> Element {
                 div { class: "turn-duration", "{secs:.1}s" }
             }
         }
-        DisplayItem::Compaction { content, .. } => rsx! {
-            MessageBlock { label: "Compaction", border_class: "border-compaction",
+        DisplayItem::Compaction { content, meta, raw } => rsx! {
+            MessageBlock {
+                label: "Compaction",
+                border_class: "border-compaction",
+                meta,
+                raw,
+                collapsible: true,
+                default_open: true,
                 Prose { content }
             }
         },
