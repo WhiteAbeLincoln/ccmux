@@ -25,176 +25,144 @@ pub fn MessageBlock(
     let mut raw_open = use_signal(|| false);
     let mut kebab_open = use_signal(|| false);
 
-    // Get global raw mode from context (may not be provided in all contexts)
     let global_raw: Option<Signal<bool>> =
         try_use_context::<RawModeContext>().map(|ctx| ctx.global_raw);
 
     let show_raw = raw_open() || global_raw.map(|s| s()).unwrap_or(false);
-
     let has_raw = raw.is_some();
 
-    // Shared raw view rendering
-    let raw_view = show_raw.then(|| {
-        rsx! {
-            div { class: "raw-inline",
-                if let Some(ref v) = raw {
-                    if result_raw.is_some() {
-                        div { class: "raw-inline-label", "tool_use" }
-                    }
-                    JsonTree { value: v.clone(), default_expand_depth: 1 }
-                }
-                if let Some(ref rv) = result_raw {
-                    div { class: "raw-inline-label", "tool_result" }
-                    JsonTree { value: rv.clone(), default_expand_depth: 1 }
-                }
-            }
+    // Build outer class
+    let block_class = if minimal {
+        if open() {
+            format!("message-block {border_class} message-block-minimal message-block-expanded")
+        } else {
+            format!("message-block {border_class} message-block-minimal")
         }
-    });
+    } else {
+        format!("message-block {border_class}")
+    };
 
-    if minimal {
-        // Minimal mode: single-line row, click header to expand
-        rsx! {
+    rsx! {
+        div { class: "{block_class}",
+            // Header — same structure for both full and minimal, styling differs via CSS
             div {
-                class: if open() { "message-block {border_class} message-block-minimal message-block-expanded" } else { "message-block {border_class} message-block-minimal" },
-                div {
-                    class: "message-header",
-                    onclick: move |_| {
+                class: "message-header",
+                onclick: move |_| {
+                    if minimal || collapsible {
                         open.toggle();
-                    },
-                    // Fixed: caret + label
+                    }
+                },
+                // Fixed start: caret (minimal) + label
+                if minimal {
                     span { class: "message-caret",
                         if open() { "\u{25BE}" } else { "\u{25B8}" }
                     }
-                    span { class: "message-label", "{label}" }
-                    // Scrollable middle: extra label + spacer + meta
-                    span { class: "header-middle",
-                        if let Some(extra) = &extra_label {
-                            span { class: "message-extra-label", "{extra}" }
-                        }
-                        span { class: "header-spacer" }
-                        if let Some(ref m) = meta {
-                            MetaFields { meta: m.clone() }
-                        }
+                }
+                span { class: "message-label", "{label}" }
+
+                // Scrollable middle: extra label + spacer + metadata
+                span { class: "header-middle",
+                    if let Some(extra) = &extra_label {
+                        span { class: "message-extra-label", "{extra}" }
                     }
-                    // Fixed end: buttons
-                    div { class: "message-actions",
-                        if has_raw {
-                            button {
-                                class: if show_raw { "message-raw-toggle message-raw-toggle-active" } else { "message-raw-toggle" },
-                                title: "Toggle raw JSON",
-                                onclick: move |e| {
-                                    e.stop_propagation();
-                                    raw_open.toggle();
-                                },
-                                "{{}}"
-                            }
-                        }
+                    span { class: "header-spacer" }
+                    if let Some(ref m) = meta {
+                        MetaFields { meta: m.clone() }
                     }
                 }
-                if open() {
-                    div { class: "message-body",
-                        {children}
-                        {raw_view}
+
+                // Fixed end: action buttons
+                div { class: "message-actions",
+                    if has_raw {
+                        button {
+                            class: if show_raw { "message-raw-toggle message-raw-toggle-active" } else { "message-raw-toggle" },
+                            title: "Toggle raw JSON",
+                            onclick: move |e| {
+                                e.stop_propagation();
+                                raw_open.toggle();
+                            },
+                            "{{}}"
+                        }
+                    }
+                    if !minimal && collapsible {
+                        button {
+                            class: "message-collapse-toggle",
+                            title: if open() { "Collapse" } else { "Expand" },
+                            onclick: move |e| {
+                                e.stop_propagation();
+                                open.toggle();
+                            },
+                            if open() { "\u{25B4}" } else { "\u{25BE}" }
+                        }
+                    }
+
+                    // Kebab menu (mobile, <=768px)
+                    if !minimal && (has_raw || collapsible) {
+                        div { class: "kebab-menu",
+                            button {
+                                class: "kebab-trigger",
+                                title: "More options",
+                                onclick: move |e| {
+                                    e.stop_propagation();
+                                    kebab_open.toggle();
+                                },
+                                "\u{22EE}"
+                            }
+                            if kebab_open() {
+                                div {
+                                    class: "kebab-backdrop",
+                                    onclick: move |e| {
+                                        e.stop_propagation();
+                                        kebab_open.set(false);
+                                    },
+                                }
+                                div { class: "kebab-dropdown",
+                                    if has_raw {
+                                        button {
+                                            class: if show_raw { "kebab-item kebab-item-active" } else { "kebab-item" },
+                                            onclick: move |e| {
+                                                e.stop_propagation();
+                                                raw_open.toggle();
+                                                kebab_open.set(false);
+                                            },
+                                            "{{}}"
+                                        }
+                                    }
+                                    if collapsible {
+                                        button {
+                                            class: "kebab-item",
+                                            onclick: move |e| {
+                                                e.stop_propagation();
+                                                open.toggle();
+                                                kebab_open.set(false);
+                                            },
+                                            if open() { "\u{25B4}" } else { "\u{25BE}" }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
-        }
-    } else {
-        // Full mode: left border, header with metadata + action buttons, expandable body
-        rsx! {
-            div { class: "message-block {border_class}",
-                div { class: "message-header",
-                    // Fixed: label
-                    span { class: "message-label", "{label}" }
-                    // Scrollable middle: extra label + spacer + meta
-                    span { class: "header-middle",
-                        if let Some(extra) = &extra_label {
-                            span { class: "message-extra-label", "{extra}" }
-                        }
-                        span { class: "header-spacer" }
-                        if let Some(ref m) = meta {
-                            MetaFields { meta: m.clone() }
-                        }
-                    }
-                    // Fixed end: action buttons
-                    div { class: "message-actions",
-                        if has_raw {
-                            button {
-                                class: if show_raw { "message-raw-toggle message-raw-toggle-active" } else { "message-raw-toggle" },
-                                title: "Toggle raw JSON",
-                                onclick: move |e| {
-                                    e.stop_propagation();
-                                    raw_open.toggle();
-                                },
-                                "{{}}"
-                            }
-                        }
-                        if collapsible {
-                            button {
-                                class: "message-collapse-toggle",
-                                title: if open() { "Collapse" } else { "Expand" },
-                                onclick: move |e| {
-                                    e.stop_propagation();
-                                    open.toggle();
-                                },
-                                if open() { "\u{25B4}" } else { "\u{25BE}" }
-                            }
-                        }
 
-                        // Kebab menu (mobile, <=768px)
-                        if has_raw || collapsible {
-                            div { class: "kebab-menu",
-                                button {
-                                    class: "kebab-trigger",
-                                    title: "More options",
-                                    onclick: move |e| {
-                                        e.stop_propagation();
-                                        kebab_open.toggle();
-                                    },
-                                    "\u{22EE}"
+            // Body
+            if open() {
+                div { class: "message-body",
+                    {children}
+                    if show_raw {
+                        div { class: "raw-inline",
+                            if let Some(ref v) = raw {
+                                if result_raw.is_some() {
+                                    div { class: "raw-inline-label", "tool_use" }
                                 }
-                                if kebab_open() {
-                                    div {
-                                        class: "kebab-backdrop",
-                                        onclick: move |e| {
-                                            e.stop_propagation();
-                                            kebab_open.set(false);
-                                        },
-                                    }
-                                    div { class: "kebab-dropdown",
-                                        if has_raw {
-                                            button {
-                                                class: if show_raw { "kebab-item kebab-item-active" } else { "kebab-item" },
-                                                onclick: move |e| {
-                                                    e.stop_propagation();
-                                                    raw_open.toggle();
-                                                    kebab_open.set(false);
-                                                },
-                                                "{{}}"
-                                            }
-                                        }
-                                        if collapsible {
-                                            button {
-                                                class: "kebab-item",
-                                                onclick: move |e| {
-                                                    e.stop_propagation();
-                                                    open.toggle();
-                                                    kebab_open.set(false);
-                                                },
-                                                if open() { "\u{25B4}" } else { "\u{25BE}" }
-                                            }
-                                        }
-                                    }
-                                }
+                                JsonTree { value: v.clone(), default_expand_depth: 1 }
+                            }
+                            if let Some(ref rv) = result_raw {
+                                div { class: "raw-inline-label", "tool_result" }
+                                JsonTree { value: rv.clone(), default_expand_depth: 1 }
                             }
                         }
-                    }
-                }
-
-                if open() {
-                    div { class: "message-body",
-                        {children}
-                        {raw_view}
                     }
                 }
             }
