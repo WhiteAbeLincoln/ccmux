@@ -19,19 +19,19 @@ pub fn events_to_display_items(
 
     let mut output: Vec<DisplayItem> = Vec::new();
     let mut grouped_acc: Vec<DisplayItem> = Vec::new();
-    let mut task_acc: Vec<(DisplayItem, Value)> = Vec::new(); // (item, raw) for task extraction
+    // let mut task_acc: Vec<(DisplayItem, Value)> = Vec::new(); // (item, raw) for task extraction
 
     for (event, raw) in events.iter().zip(raw_events.iter()) {
         let intermediates = event_to_intermediates(event, raw, opts, &tool_results);
 
         for (item, mode) in intermediates {
             match mode {
-                DisplayMode::TaskList => {
-                    flush_grouped(&mut grouped_acc, &mut output);
-                    task_acc.push((item, raw.clone()));
-                }
+                // DisplayMode::TaskList => {
+                //     flush_grouped(&mut grouped_acc, &mut output);
+                //     task_acc.push((item, raw.clone()));
+                // }
                 DisplayMode::Grouped => {
-                    flush_tasks(&mut task_acc, &mut output);
+                    // flush_tasks(&mut task_acc, &mut output);
                     grouped_acc.push(item);
                 }
                 DisplayMode::Hidden => {
@@ -40,7 +40,7 @@ pub fn events_to_display_items(
                 _ => {
                     // Full or Collapsed — flush accumulators and emit directly
                     flush_grouped(&mut grouped_acc, &mut output);
-                    flush_tasks(&mut task_acc, &mut output);
+                    // flush_tasks(&mut task_acc, &mut output);
                     output.push(item);
                 }
             }
@@ -48,7 +48,7 @@ pub fn events_to_display_items(
     }
 
     flush_grouped(&mut grouped_acc, &mut output);
-    flush_tasks(&mut task_acc, &mut output);
+    // flush_tasks(&mut task_acc, &mut output);
 
     output
 }
@@ -310,7 +310,7 @@ fn assistant_event_items(
                 let mode = mode_for(DisplayItemDiscriminant::ToolUse, Some(&name), opts);
 
                 // Check if this is a task-related tool
-                if mode == DisplayMode::TaskList {
+                /*if mode == DisplayMode::TaskList {
                     let tasks = extract_task_items(&name, &id, &input);
                     result.push((
                         DisplayItem::TaskList {
@@ -320,7 +320,8 @@ fn assistant_event_items(
                         },
                         mode,
                     ));
-                } else {
+                } else*/
+                {
                     let tool_result = tool_results.get(&id).cloned();
                     result.push((
                         DisplayItem::ToolUse {
@@ -391,7 +392,7 @@ fn mode_for(
 }
 
 /// Extract task items from task-related tool input.
-fn extract_task_items(tool_name: &str, tool_use_id: &str, input: &Value) -> Vec<TaskItem> {
+fn _extract_task_items(tool_name: &str, tool_use_id: &str, input: &Value) -> Vec<TaskItem> {
     match tool_name {
         "TaskCreate" => {
             let subject = input
@@ -439,7 +440,7 @@ fn item_meta(item: &DisplayItem) -> Option<&ItemMeta> {
         | DisplayItem::AssistantMessage { meta, .. }
         | DisplayItem::Thinking { meta, .. }
         | DisplayItem::ToolUse { meta, .. }
-        | DisplayItem::TaskList { meta, .. }
+        // | DisplayItem::TaskList { meta, .. }
         | DisplayItem::TurnDuration { meta, .. }
         | DisplayItem::Compaction { meta, .. }
         | DisplayItem::Group { meta, .. } => Some(meta),
@@ -485,43 +486,43 @@ fn flush_grouped(acc: &mut Vec<DisplayItem>, output: &mut Vec<DisplayItem>) {
 }
 
 /// Flush task accumulator: merge all task items into a single TaskList.
-fn flush_tasks(acc: &mut Vec<(DisplayItem, Value)>, output: &mut Vec<DisplayItem>) {
-    if acc.is_empty() {
-        return;
-    }
+// fn flush_tasks(acc: &mut Vec<(DisplayItem, Value)>, output: &mut Vec<DisplayItem>) {
+//     if acc.is_empty() {
+//         return;
+//     }
 
-    let mut all_tasks = Vec::new();
-    let mut last_raw = Value::Null;
-    let mut meta = ItemMeta::default();
+//     let mut all_tasks = Vec::new();
+//     let mut last_raw = Value::Null;
+//     let mut meta = ItemMeta::default();
 
-    for (item, raw) in acc.drain(..) {
-        last_raw = raw;
-        if let DisplayItem::TaskList {
-            tasks,
-            meta: item_meta,
-            ..
-        } = item
-        {
-            all_tasks.extend(tasks);
-            // Use meta from first item with a model; accumulate tokens
-            if meta.model.is_none() {
-                meta.model = item_meta.model;
-            }
-            if let Some(t) = item_meta.tokens {
-                *meta.tokens.get_or_insert(0) += t;
-            }
-            if meta.uuid.is_none() {
-                meta.uuid = item_meta.uuid;
-            }
-        }
-    }
+//     for (item, raw) in acc.drain(..) {
+//         last_raw = raw;
+//         if let DisplayItem::TaskList {
+//             tasks,
+//             meta: item_meta,
+//             ..
+//         } = item
+//         {
+//             all_tasks.extend(tasks);
+//             // Use meta from first item with a model; accumulate tokens
+//             if meta.model.is_none() {
+//                 meta.model = item_meta.model;
+//             }
+//             if let Some(t) = item_meta.tokens {
+//                 *meta.tokens.get_or_insert(0) += t;
+//             }
+//             if meta.uuid.is_none() {
+//                 meta.uuid = item_meta.uuid;
+//             }
+//         }
+//     }
 
-    output.push(DisplayItem::TaskList {
-        tasks: all_tasks,
-        meta,
-        raw: last_raw,
-    });
-}
+//     output.push(DisplayItem::TaskList {
+//         tasks: all_tasks,
+//         meta,
+//         raw: last_raw,
+//     });
+// }
 
 #[cfg(test)]
 mod tests {

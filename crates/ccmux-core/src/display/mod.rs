@@ -46,11 +46,11 @@ pub enum DisplayItem {
         meta: ItemMeta,
         raw: Value,
     },
-    TaskList {
-        tasks: Vec<TaskItem>,
-        meta: ItemMeta,
-        raw: Value,
-    },
+    // TaskList {
+    //     tasks: Vec<TaskItem>,
+    //     meta: ItemMeta,
+    //     raw: Value,
+    // },
     TurnDuration {
         duration_ms: u64,
         meta: ItemMeta,
@@ -102,7 +102,7 @@ pub enum DisplayMode {
     Full,
     Collapsed,
     Grouped,
-    TaskList,
+    // TaskList,
     Hidden,
 }
 
@@ -146,10 +146,10 @@ impl Default for DisplayOpts {
         let tool_overrides = HashMap::from([
             ("Bash".to_string(), Full),
             ("AskUserQuestion".to_string(), Full),
-            ("TaskCreate".to_string(), TaskList),
-            ("TaskUpdate".to_string(), TaskList),
-            ("TaskGet".to_string(), TaskList),
-            ("TaskList".to_string(), TaskList),
+            // ("TaskCreate".to_string(), TaskList),
+            // ("TaskUpdate".to_string(), TaskList),
+            // ("TaskGet".to_string(), TaskList),
+            // ("TaskList".to_string(), TaskList),
         ]);
 
         Self {

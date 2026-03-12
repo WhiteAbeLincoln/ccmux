@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::{DisplayItem, DisplayMode, DisplayOpts, TaskItem, ToolResultData};
+use super::{DisplayItem, DisplayMode, DisplayOpts, ToolResultData};
 
 /// Protocol message sent over SSE from server to client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,9 +18,9 @@ pub enum StreamEvent {
         tool_use_id: String,
         result: ToolResultData,
     },
-    UpdateTask {
-        task: TaskItem,
-    },
+    // UpdateTask {
+    //     task: TaskItem,
+    // },
 }
 
 /// Minimal server-side state for streaming decisions.
@@ -52,15 +52,15 @@ impl StreamPipelineState {
                 self.last_mode = Some(DisplayMode::Grouped);
                 Some(event)
             }
-            DisplayMode::TaskList => {
-                let event = if self.last_mode == Some(DisplayMode::TaskList) {
-                    StreamEvent::MergeWithPrevious { item }
-                } else {
-                    StreamEvent::Append { item }
-                };
-                self.last_mode = Some(DisplayMode::TaskList);
-                Some(event)
-            }
+            // DisplayMode::TaskList => {
+            //     let event = if self.last_mode == Some(DisplayMode::TaskList) {
+            //         StreamEvent::MergeWithPrevious { item }
+            //     } else {
+            //         StreamEvent::Append { item }
+            //     };
+            //     self.last_mode = Some(DisplayMode::TaskList);
+            //     Some(event)
+            // }
             _ => {
                 self.last_mode = Some(mode);
                 Some(StreamEvent::Append { item })

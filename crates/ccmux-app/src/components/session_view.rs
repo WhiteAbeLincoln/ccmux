@@ -55,37 +55,36 @@ fn apply_stream_event(items: &mut Vec<DisplayItem>, event: StreamEvent) {
             result,
         } => {
             update_tool_result_recursive(items, &tool_use_id, &result);
-        }
-        StreamEvent::UpdateTask { task } => {
-            // Find and update a matching task in any TaskList
-            for item in items.iter_mut() {
-                match item {
-                    DisplayItem::TaskList { tasks, .. } => {
-                        if let Some(existing) = tasks.iter_mut().find(|t| t.id == task.id) {
-                            existing.status = task.status.clone();
-                            if !task.subject.is_empty() {
-                                existing.subject = task.subject.clone();
-                            }
-                        }
-                    }
-                    DisplayItem::Group {
-                        items: group_items, ..
-                    } => {
-                        for group_item in group_items.iter_mut() {
-                            if let DisplayItem::TaskList { tasks, .. } = group_item
-                                && let Some(existing) = tasks.iter_mut().find(|t| t.id == task.id)
-                            {
-                                existing.status = task.status.clone();
-                                if !task.subject.is_empty() {
-                                    existing.subject = task.subject.clone();
-                                }
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-            }
-        }
+        } // StreamEvent::UpdateTask { task } => {
+          //     // Find and update a matching task in any TaskList
+          //     for item in items.iter_mut() {
+          //         match item {
+          //             DisplayItem::TaskList { tasks, .. } => {
+          //                 if let Some(existing) = tasks.iter_mut().find(|t| t.id == task.id) {
+          //                     existing.status = task.status.clone();
+          //                     if !task.subject.is_empty() {
+          //                         existing.subject = task.subject.clone();
+          //                     }
+          //                 }
+          //             }
+          //             DisplayItem::Group {
+          //                 items: group_items, ..
+          //             } => {
+          //                 for group_item in group_items.iter_mut() {
+          //                     if let DisplayItem::TaskList { tasks, .. } = group_item
+          //                         && let Some(existing) = tasks.iter_mut().find(|t| t.id == task.id)
+          //                     {
+          //                         existing.status = task.status.clone();
+          //                         if !task.subject.is_empty() {
+          //                             existing.subject = task.subject.clone();
+          //                         }
+          //                     }
+          //                 }
+          //             }
+          //             _ => {}
+          //         }
+          //     }
+          // }
     }
 }
 
@@ -170,7 +169,7 @@ pub fn SessionView(id: String) -> Element {
         }
     });
 
-    let short_id = id[..id.len().min(6)].to_string();
+    let short_id = id[..id.len().min(8)].to_string();
 
     match &*session_resource.read() {
         Some(Ok(response)) => {
