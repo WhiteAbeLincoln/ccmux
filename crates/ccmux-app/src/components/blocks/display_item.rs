@@ -44,7 +44,9 @@ pub fn DisplayItemView(item: DisplayItem, minimal: bool) -> Element {
                 div { class: "turn-duration", "data-role": "system", "Turn completed in {secs:.1}s" }
             }
         }
-        DisplayItem::UserMessage { content, meta, raw } => rsx! {
+        DisplayItem::UserMessage {
+            content, meta, raw, ..
+        } => rsx! {
             MessageBlock {
                 label: rsx!{"User"},
                 role: "user",
@@ -55,7 +57,9 @@ pub fn DisplayItemView(item: DisplayItem, minimal: bool) -> Element {
                 Prose { content }
             }
         },
-        DisplayItem::AssistantMessage { text, meta, raw } => rsx! {
+        DisplayItem::AssistantMessage {
+            text, meta, raw, ..
+        } => rsx! {
             MessageBlock {
                 label: rsx!{"Assistant"},
                 role: "assistant",
@@ -66,7 +70,9 @@ pub fn DisplayItemView(item: DisplayItem, minimal: bool) -> Element {
                 Prose { content: text }
             }
         },
-        DisplayItem::Thinking { text, meta, raw } => rsx! {
+        DisplayItem::Thinking {
+            text, meta, raw, ..
+        } => rsx! {
             MessageBlock {
                 label: rsx!{"Thinking"},
                 role: "thinking",
@@ -114,7 +120,9 @@ pub fn DisplayItemView(item: DisplayItem, minimal: bool) -> Element {
         //         }
         //     }
         // }
-        DisplayItem::Compaction { content, meta, raw } => rsx! {
+        DisplayItem::Compaction {
+            content, meta, raw, ..
+        } => rsx! {
             MessageBlock {
                 label: rsx!{"Compaction"},
                 role: "compaction",
@@ -125,7 +133,7 @@ pub fn DisplayItemView(item: DisplayItem, minimal: bool) -> Element {
                 Prose { content }
             }
         },
-        DisplayItem::Other { raw } => rsx! {
+        DisplayItem::Other { raw, .. } => rsx! {
             MessageBlock {
                 label: rsx!{"Other"},
                 role: "other",

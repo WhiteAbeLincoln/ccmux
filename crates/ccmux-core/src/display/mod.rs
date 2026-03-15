@@ -27,16 +27,22 @@ pub enum DisplayItem {
         content: String,
         meta: ItemMeta,
         raw: Value,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cursor: Option<String>,
     },
     AssistantMessage {
         text: String,
         meta: ItemMeta,
         raw: Value,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cursor: Option<String>,
     },
     Thinking {
         text: String,
         meta: ItemMeta,
         raw: Value,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cursor: Option<String>,
     },
     ToolUse {
         name: String,
@@ -45,6 +51,8 @@ pub enum DisplayItem {
         result: Option<ToolResultData>,
         meta: ItemMeta,
         raw: Value,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cursor: Option<String>,
     },
     // TaskList {
     //     tasks: Vec<TaskItem>,
@@ -55,15 +63,51 @@ pub enum DisplayItem {
         duration_ms: u64,
         meta: ItemMeta,
         raw: Value,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cursor: Option<String>,
     },
     Compaction {
         content: String,
         meta: ItemMeta,
         raw: Value,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cursor: Option<String>,
     },
     Other {
         raw: Value,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cursor: Option<String>,
     },
+}
+
+impl DisplayItem {
+    /// Set the cursor value on this display item.
+    pub fn set_cursor(&mut self, cursor_value: String) {
+        match self {
+            DisplayItem::UserMessage { cursor, .. }
+            | DisplayItem::AssistantMessage { cursor, .. }
+            | DisplayItem::Thinking { cursor, .. }
+            | DisplayItem::ToolUse { cursor, .. }
+            | DisplayItem::TurnDuration { cursor, .. }
+            | DisplayItem::Compaction { cursor, .. }
+            | DisplayItem::Other { cursor, .. } => {
+                *cursor = Some(cursor_value);
+            }
+        }
+    }
+
+    /// Get the cursor value from this display item.
+    pub fn cursor(&self) -> Option<&str> {
+        match self {
+            DisplayItem::UserMessage { cursor, .. }
+            | DisplayItem::AssistantMessage { cursor, .. }
+            | DisplayItem::Thinking { cursor, .. }
+            | DisplayItem::ToolUse { cursor, .. }
+            | DisplayItem::TurnDuration { cursor, .. }
+            | DisplayItem::Compaction { cursor, .. }
+            | DisplayItem::Other { cursor, .. } => cursor.as_deref(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

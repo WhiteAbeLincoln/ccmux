@@ -164,6 +164,7 @@ fn user_event_items(
                     ..Default::default()
                 },
                 raw: raw.clone(),
+                cursor: None,
             },
             mode,
         )];
@@ -188,6 +189,7 @@ fn user_event_items(
                         ..Default::default()
                     },
                     raw: raw.clone(),
+                    cursor: None,
                 },
                 mode,
             )];
@@ -203,7 +205,13 @@ fn user_event_items(
             if item.get("type").and_then(|v| v.as_str()) == Some("tool_result") {
                 // tool_result items are hidden (they're pre-scanned and paired with tool_use)
                 let mode = mode_for(DisplayItemDiscriminant::ToolResult, None, opts);
-                result.push((DisplayItem::Other { raw: raw.clone() }, mode));
+                result.push((
+                    DisplayItem::Other {
+                        raw: raw.clone(),
+                        cursor: None,
+                    },
+                    mode,
+                ));
             } else {
                 others.push(item.clone());
             }
@@ -211,7 +219,13 @@ fn user_event_items(
 
         if !others.is_empty() {
             let mode = mode_for(DisplayItemDiscriminant::Other, None, opts);
-            result.push((DisplayItem::Other { raw: raw.clone() }, mode));
+            result.push((
+                DisplayItem::Other {
+                    raw: raw.clone(),
+                    cursor: None,
+                },
+                mode,
+            ));
         }
 
         return result;
@@ -219,7 +233,13 @@ fn user_event_items(
 
     // Fallback
     let mode = mode_for(DisplayItemDiscriminant::Other, None, opts);
-    vec![(DisplayItem::Other { raw: raw.clone() }, mode)]
+    vec![(
+        DisplayItem::Other {
+            raw: raw.clone(),
+            cursor: None,
+        },
+        mode,
+    )]
 }
 
 fn assistant_event_items(
@@ -257,7 +277,13 @@ fn assistant_event_items(
     let content = data.message.get("content").and_then(|v| v.as_array());
     let Some(items) = content else {
         let mode = mode_for(DisplayItemDiscriminant::Other, None, opts);
-        return vec![(DisplayItem::Other { raw: raw.clone() }, mode)];
+        return vec![(
+            DisplayItem::Other {
+                raw: raw.clone(),
+                cursor: None,
+            },
+            mode,
+        )];
     };
 
     let mut result = Vec::new();
@@ -273,6 +299,7 @@ fn assistant_event_items(
                         text: text.to_string(),
                         meta: meta.clone(),
                         raw: raw.clone(),
+                        cursor: None,
                     },
                     mode,
                 ));
@@ -285,6 +312,7 @@ fn assistant_event_items(
                         text: text.to_string(),
                         meta: meta.clone(),
                         raw: raw.clone(),
+                        cursor: None,
                     },
                     mode,
                 ));
@@ -326,6 +354,7 @@ fn assistant_event_items(
                             result: tool_result,
                             meta: meta.clone(),
                             raw: raw.clone(),
+                            cursor: None,
                         },
                         mode,
                     ));
@@ -333,7 +362,13 @@ fn assistant_event_items(
             }
             _ => {
                 let mode = mode_for(DisplayItemDiscriminant::Other, None, opts);
-                result.push((DisplayItem::Other { raw: raw.clone() }, mode));
+                result.push((
+                    DisplayItem::Other {
+                        raw: raw.clone(),
+                        cursor: None,
+                    },
+                    mode,
+                ));
             }
         }
     }
@@ -359,13 +394,20 @@ fn system_event_items(
                     ..Default::default()
                 },
                 raw: raw.clone(),
+                cursor: None,
             },
             mode,
         )];
     }
 
     let mode = mode_for(DisplayItemDiscriminant::Other, None, opts);
-    vec![(DisplayItem::Other { raw: raw.clone() }, mode)]
+    vec![(
+        DisplayItem::Other {
+            raw: raw.clone(),
+            cursor: None,
+        },
+        mode,
+    )]
 }
 
 /// Determine display mode for an item, checking tool overrides first.
