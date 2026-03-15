@@ -1,5 +1,6 @@
 pub mod format;
 pub mod highlight;
+pub mod markdown;
 pub mod pipeline;
 pub mod streaming;
 
@@ -161,12 +162,47 @@ pub enum DisplayItemDiscriminant {
     Other,
 }
 
+/// Encode a byte offset as an opaque cursor string (hex-encoded).
+pub fn encode_cursor(offset: u64) -> String {
+    format!("{offset:x}")
+}
+
+/// Decode an opaque cursor string back to a byte offset.
+pub fn decode_cursor(cursor: &str) -> Option<u64> {
+    u64::from_str_radix(cursor, 16).ok()
+}
+
 /// Controls how events are mapped to display modes. Configurable per item kind
 /// and per tool name. Use `Default::default()` for standard behavior.
 #[derive(Debug, Clone)]
 pub struct DisplayOpts {
     pub defaults: HashMap<DisplayItemDiscriminant, DisplayMode>,
     pub tool_overrides: HashMap<String, DisplayMode>,
+}
+
+impl DisplayOpts {
+    /// Display options for the markdown API. Only user and assistant messages are Full.
+    /// All tools, thinking, and compaction are Grouped. TurnDuration and Other are Hidden.
+    pub fn markdown() -> Self {
+        use DisplayItemDiscriminant::*;
+        use DisplayModeF::*;
+
+        let defaults = HashMap::from([
+            (UserMessage, Full(())),
+            (AssistantMessage, Full(())),
+            (Thinking, Grouped(())),
+            (ToolUse, Grouped(())),
+            (ToolResult, Hidden(())),
+            (TurnDuration, Hidden(())),
+            (Compaction, Grouped(())),
+            (Other, Hidden(())),
+        ]);
+
+        Self {
+            defaults,
+            tool_overrides: HashMap::new(),
+        }
+    }
 }
 
 impl Default for DisplayOpts {
@@ -198,5 +234,27 @@ impl Default for DisplayOpts {
             defaults,
             tool_overrides,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cursor_roundtrip() {
+        let offset = 12345u64;
+        let cursor = encode_cursor(offset);
+        assert_eq!(decode_cursor(&cursor), Some(offset));
+    }
+
+    #[test]
+    fn test_cursor_zero() {
+        assert_eq!(decode_cursor(&encode_cursor(0)), Some(0));
+    }
+
+    #[test]
+    fn test_decode_invalid_cursor() {
+        assert_eq!(decode_cursor("not_hex!"), None);
     }
 }

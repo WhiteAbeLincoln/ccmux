@@ -4,7 +4,7 @@ use serde_json::Value;
 
 use super::{
     DisplayItem, DisplayItemDiscriminant, DisplayItemWithMode, DisplayMode, DisplayModeF,
-    DisplayOpts, ItemMeta, TaskItem, TaskStatus, ToolResultData,
+    DisplayOpts, ItemMeta, TaskItem, TaskStatus, ToolResultData, encode_cursor,
 };
 use crate::events::Event;
 
@@ -118,6 +118,55 @@ fn pre_scan_tool_results(raw_events: &[Value]) -> HashMap<String, ToolResultData
         .iter()
         .flat_map(extract_tool_results_from_event)
         .collect()
+}
+
+fn pre_scan_tool_results_refs(raw_events: &[&Value]) -> HashMap<String, ToolResultData> {
+    raw_events
+        .iter()
+        .flat_map(|v| extract_tool_results_from_event(v))
+        .collect()
+}
+
+/// Convert events + raw JSON + byte offsets into display items with cursors.
+/// Like `events_to_display_items` but tags each item with its source line's cursor.
+pub fn events_to_display_items_with_offsets(
+    events: &[Event],
+    raw_events_with_offsets: &[(u64, Value)],
+    opts: &DisplayOpts,
+) -> Vec<DisplayItemWithMode> {
+    let raw_refs: Vec<&Value> = raw_events_with_offsets.iter().map(|(_, v)| v).collect();
+    let tool_results = pre_scan_tool_results_refs(&raw_refs);
+
+    let mut output: Vec<DisplayItemWithMode> = Vec::new();
+    let mut grouped_acc: Vec<DisplayItem> = Vec::new();
+
+    for (event, (offset, raw)) in events.iter().zip(raw_events_with_offsets.iter()) {
+        let intermediates = event_to_intermediates(event, raw, opts, &tool_results);
+        let cursor = encode_cursor(*offset);
+
+        for (mut item, mode) in intermediates {
+            item.set_cursor(cursor.clone());
+            match mode {
+                DisplayModeF::Grouped(()) => {
+                    grouped_acc.push(item);
+                }
+                DisplayModeF::Hidden(()) => {
+                    // skip
+                }
+                DisplayModeF::Full(()) => {
+                    flush_grouped(&mut grouped_acc, &mut output);
+                    output.push(DisplayModeF::Full(item));
+                }
+                DisplayModeF::Collapsed(()) => {
+                    flush_grouped(&mut grouped_acc, &mut output);
+                    output.push(DisplayModeF::Collapsed(item));
+                }
+            }
+        }
+    }
+
+    flush_grouped(&mut grouped_acc, &mut output);
+    output
 }
 
 /// Convert a single event into intermediate (DisplayItem, DisplayMode) pairs.
@@ -686,6 +735,52 @@ mod tests {
         let events = parse_events(&raw);
         let items = events_to_display_items(&events, &raw, &make_opts());
         assert!(items.is_empty());
+    }
+
+    #[test]
+    fn test_events_to_display_items_with_offsets() {
+        let raw_with_offsets = vec![
+            (
+                0u64,
+                json!({
+                    "type": "user",
+                    "cwd": "/tmp", "isSidechain": false, "sessionId": "s1",
+                    "timestamp": "2026-01-01T00:00:00Z", "userType": "external",
+                    "uuid": "u1", "version": "1",
+                    "message": {"role": "user", "content": "hello world"}
+                }),
+            ),
+            (
+                100u64,
+                json!({
+                    "type": "assistant",
+                    "cwd": "/tmp", "isSidechain": false, "sessionId": "s1",
+                    "timestamp": "2026-01-01T00:00:01Z", "userType": "external",
+                    "uuid": "u2", "version": "1",
+                    "message": {"role": "assistant", "content": [
+                        {"type": "text", "text": "hi there"}
+                    ]}
+                }),
+            ),
+        ];
+        let raw_values: Vec<Value> = raw_with_offsets.iter().map(|(_, v)| v.clone()).collect();
+        let events = parse_events(&raw_values);
+        let items = events_to_display_items_with_offsets(&events, &raw_with_offsets, &make_opts());
+
+        assert_eq!(items.len(), 2);
+        // Check cursors are set
+        match &items[0] {
+            DisplayModeF::Full(item) => {
+                assert_eq!(item.cursor(), Some(super::encode_cursor(0).as_str()));
+            }
+            other => panic!("Expected Full, got {:?}", other),
+        }
+        match &items[1] {
+            DisplayModeF::Full(item) => {
+                assert_eq!(item.cursor(), Some(super::encode_cursor(100).as_str()));
+            }
+            other => panic!("Expected Full, got {:?}", other),
+        }
     }
 
     #[test]
