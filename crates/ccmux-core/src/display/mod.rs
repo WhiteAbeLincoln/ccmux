@@ -257,4 +257,36 @@ mod tests {
     fn test_decode_invalid_cursor() {
         assert_eq!(decode_cursor("not_hex!"), None);
     }
+
+    #[test]
+    fn test_markdown_display_opts() {
+        let opts = DisplayOpts::markdown();
+        assert_eq!(
+            opts.defaults.get(&DisplayItemDiscriminant::UserMessage),
+            Some(&DisplayModeF::Full(()))
+        );
+        assert_eq!(
+            opts.defaults
+                .get(&DisplayItemDiscriminant::AssistantMessage),
+            Some(&DisplayModeF::Full(()))
+        );
+        assert_eq!(
+            opts.defaults.get(&DisplayItemDiscriminant::Thinking),
+            Some(&DisplayModeF::Grouped(()))
+        );
+        assert_eq!(
+            opts.defaults.get(&DisplayItemDiscriminant::ToolUse),
+            Some(&DisplayModeF::Grouped(()))
+        );
+        assert_eq!(
+            opts.defaults.get(&DisplayItemDiscriminant::TurnDuration),
+            Some(&DisplayModeF::Hidden(()))
+        );
+        assert_eq!(
+            opts.defaults.get(&DisplayItemDiscriminant::Other),
+            Some(&DisplayModeF::Hidden(()))
+        );
+        // No tool overrides — all tools are grouped in markdown view
+        assert!(opts.tool_overrides.is_empty());
+    }
 }
