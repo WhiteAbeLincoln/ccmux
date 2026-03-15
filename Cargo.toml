@@ -1,6 +1,7 @@
 [workspace]
 members = ["crates/ccmux-core", "crates/ccmux-app"]
 resolver = "2"
+exclude = [".worktrees"]
 
 [workspace.package]
 version = "0.1.0"

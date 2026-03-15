@@ -428,7 +428,6 @@ fn _extract_task_items(tool_name: &str, tool_use_id: &str, input: &Value) -> Vec
     }
 }
 
-
 /// Flush grouped accumulator into DisplayItemWithMode entries.
 /// A single item stays Collapsed; multiple items become Grouped(vec).
 fn flush_grouped(acc: &mut Vec<DisplayItem>, output: &mut Vec<DisplayItemWithMode>) {
@@ -552,7 +551,10 @@ mod tests {
         // thinking1 + thinking2 + Read (Grouped) = one Grouped, then text = Full
         assert_eq!(items.len(), 2);
         assert!(matches!(&items[0], DisplayModeF::Grouped(group) if group.len() == 3));
-        assert!(matches!(&items[1], DisplayModeF::Full(DisplayItem::AssistantMessage { .. })));
+        assert!(matches!(
+            &items[1],
+            DisplayModeF::Full(DisplayItem::AssistantMessage { .. })
+        ));
     }
 
     #[test]
@@ -569,7 +571,9 @@ mod tests {
         let events = parse_events(&raw);
         let items = events_to_display_items(&events, &raw, &make_opts());
         assert_eq!(items.len(), 1);
-        assert!(matches!(&items[0], DisplayModeF::Full(DisplayItem::ToolUse { name, .. }) if name == "Bash"));
+        assert!(
+            matches!(&items[0], DisplayModeF::Full(DisplayItem::ToolUse { name, .. }) if name == "Bash")
+        );
     }
 
     #[test]
@@ -660,7 +664,13 @@ mod tests {
         let events = parse_events(&raw);
         let items = events_to_display_items(&events, &raw, &opts);
         assert_eq!(items.len(), 2);
-        assert!(matches!(&items[0], DisplayModeF::Full(DisplayItem::Thinking { .. })));
-        assert!(matches!(&items[1], DisplayModeF::Full(DisplayItem::Thinking { .. })));
+        assert!(matches!(
+            &items[0],
+            DisplayModeF::Full(DisplayItem::Thinking { .. })
+        ));
+        assert!(matches!(
+            &items[1],
+            DisplayModeF::Full(DisplayItem::Thinking { .. })
+        ));
     }
 }

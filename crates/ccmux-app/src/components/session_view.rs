@@ -3,8 +3,8 @@ use dioxus::prelude::*;
 use ccmux_core::display::streaming::StreamEvent;
 use ccmux_core::display::{DisplayItem, DisplayItemWithMode, DisplayModeF};
 
+use crate::components::app::NavContext;
 use crate::components::blocks::display_item::DisplayItemModedView;
-use crate::routes::Route;
 use crate::server_fns::{get_session, stream_session_events};
 
 /// Global context for raw mode toggle (show raw JSON for all blocks).
@@ -19,33 +19,32 @@ fn apply_stream_event(items: &mut Vec<DisplayItemWithMode>, event: StreamEvent) 
         StreamEvent::Append { item } => {
             // Merge consecutive Collapsed items into a Grouped
             if matches!(item, DisplayModeF::Collapsed(_))
-                && let Some(last) = items.last_mut() {
-                    match last {
-                        DisplayModeF::Grouped(group_items) => {
-                            if let DisplayModeF::Collapsed(inner) = item {
-                                group_items.push(inner);
-                            }
-                            return;
+                && let Some(last) = items.last_mut()
+            {
+                match last {
+                    DisplayModeF::Grouped(group_items) => {
+                        if let DisplayModeF::Collapsed(inner) = item {
+                            group_items.push(inner);
                         }
-                        DisplayModeF::Collapsed(_) => {
-                            let prev = std::mem::replace(
-                                last,
-                                DisplayModeF::Grouped(Vec::with_capacity(2)),
-                            );
-                            if let (
-                                DisplayModeF::Grouped(group_items),
-                                DisplayModeF::Collapsed(prev_inner),
-                                DisplayModeF::Collapsed(new_inner),
-                            ) = (last, prev, item)
-                            {
-                                group_items.push(prev_inner);
-                                group_items.push(new_inner);
-                            }
-                            return;
-                        }
-                        _ => {}
+                        return;
                     }
+                    DisplayModeF::Collapsed(_) => {
+                        let prev =
+                            std::mem::replace(last, DisplayModeF::Grouped(Vec::with_capacity(2)));
+                        if let (
+                            DisplayModeF::Grouped(group_items),
+                            DisplayModeF::Collapsed(prev_inner),
+                            DisplayModeF::Collapsed(new_inner),
+                        ) = (last, prev, item)
+                        {
+                            group_items.push(prev_inner);
+                            group_items.push(new_inner);
+                        }
+                        return;
+                    }
+                    _ => {}
                 }
+            }
             items.push(item);
         }
         StreamEvent::UpdateToolResult {
@@ -73,10 +72,11 @@ fn update_tool_result(
                     result: r,
                     ..
                 } = item
-                    && id == tool_use_id {
-                        *r = Some(result.clone());
-                        return;
-                    }
+                    && id == tool_use_id
+                {
+                    *r = Some(result.clone());
+                    return;
+                }
             }
             DisplayModeF::Grouped(group_items) => {
                 for item in group_items.iter_mut() {
@@ -85,10 +85,11 @@ fn update_tool_result(
                         result: r,
                         ..
                     } = item
-                        && id == tool_use_id {
-                            *r = Some(result.clone());
-                            return;
-                        }
+                        && id == tool_use_id
+                    {
+                        *r = Some(result.clone());
+                        return;
+                    }
                 }
             }
         }
@@ -103,9 +104,29 @@ pub fn SessionView(id: String) -> Element {
         async move { get_session(sid).await }
     })?;
 
-    // Global raw mode signal
-    let mut global_raw = use_signal(|| false);
+    // Use shared nav context for raw mode and session header
+    let nav = use_context::<NavContext>();
+    let global_raw = nav.global_raw;
     use_context_provider(|| RawModeContext { global_raw });
+
+    // Set session ID in nav context (for global header)
+    let short_id_for_nav = id[..id.len().min(8)].to_string();
+    use_effect({
+        let sid = short_id_for_nav.clone();
+        let mut session_id = nav.session_id;
+        move || {
+            session_id.set(Some(sid.clone()));
+        }
+    });
+    // Clear session ID and project path when component is unmounted
+    use_drop({
+        let mut session_id = nav.session_id;
+        let mut project_path = nav.project_path;
+        move || {
+            session_id.set(None);
+            project_path.set(None);
+        }
+    });
 
     // Jump-to-bottom FAB state
     let mut show_fab = use_signal(|| false);
@@ -117,11 +138,14 @@ pub fn SessionView(id: String) -> Element {
 
     // Start streaming after initial load completes
     let stream_id = id.clone();
+    let mut nav_project_path = nav.project_path;
     use_effect(move || {
         let response = session_resource.read();
         if let Some(Ok(resp)) = &*response {
             // Initialize live items from the loaded data
             if live_items.peek().is_none() {
+                // Set project path in nav header
+                nav_project_path.set(resp.meta.project_path.clone());
                 live_items.set(Some(resp.items.clone()));
 
                 // Spawn the streaming coroutine
@@ -150,8 +174,6 @@ pub fn SessionView(id: String) -> Element {
         }
     });
 
-    let short_id = id[..id.len().min(8)].to_string();
-
     match &*session_resource.read() {
         Some(Ok(response)) => {
             let items = live_items
@@ -161,20 +183,6 @@ pub fn SessionView(id: String) -> Element {
                 .unwrap_or_else(|| response.items.clone());
             rsx! {
                 div { class: "session-view",
-                    div { class: "session-header",
-                        Link { class: "session-back-link", to: Route::SessionList {},
-                            "\u{2190} Back"
-                        }
-                        h1 { class: "session-title", "Session {short_id}" }
-                        span { class: "session-header-spacer" }
-                        button {
-                            class: if global_raw() { "session-raw-toggle session-raw-toggle-active" } else { "session-raw-toggle" },
-                            onclick: move |_| {
-                                global_raw.toggle();
-                            },
-                            "Raw"
-                        }
-                    }
                     div {
                         class: "session-items",
                         onscroll: move |_evt| {

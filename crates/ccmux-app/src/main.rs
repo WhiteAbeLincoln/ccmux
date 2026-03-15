@@ -9,10 +9,12 @@ fn main() {
     dioxus::launch(App);
 }
 
+static MAIN_CSS: Asset = asset!("/assets/style.scss");
+
 #[component]
 fn App() -> Element {
     rsx! {
-        document::Stylesheet { href: asset!("/assets/style.css") }
+        document::Stylesheet { href: MAIN_CSS }
         Router::<Route> {}
     }
 }
