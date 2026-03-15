@@ -156,7 +156,7 @@ Fields are extracted from the raw JSONL event (`timestamp`, `message.model`, `me
 
 ## Opaque Cursor
 
-The cursor encodes the byte offset of the event's line in the JSONL file. Format: base64url-encoded byte offset (no padding). This allows O(1) random access via `seek()`.
+The cursor encodes the byte offset of the event's line in the JSONL file. Format: lowercase hex-encoded byte offset (e.g., `31c` for offset 796). This allows O(1) random access via `seek()` without introducing additional dependencies.
 
 - Generated during session loading by tracking byte positions per line
 - Stored on `DisplayItem` directly (new `cursor: Option<String>` field)
@@ -169,7 +169,7 @@ The cursor encodes the byte offset of the event's line in the JSONL file. Format
 | Condition | Status | Body |
 |-----------|--------|------|
 | Session not found | 404 | `Session not found: <id>` |
-| Invalid cursor (bad base64url) | 400 | `Invalid cursor` |
+| Invalid cursor (bad hex) | 400 | `Invalid cursor` |
 | Cursor offset beyond file length | 400 | `Invalid cursor: offset out of range` |
 | Page out of range | 404 | `Page <n> not found. Session has <m> pages.` |
 | Invalid page/per_page (non-numeric, ≤0) | 400 | `Invalid parameter: <details>` |

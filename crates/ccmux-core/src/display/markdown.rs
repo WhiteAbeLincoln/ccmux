@@ -75,12 +75,7 @@ fn tool_summary(name: &str, input: &Value) -> String {
                 format!("`{truncated}`")
             })
             .unwrap_or_default(),
-        "Read" | "Write" => input
-            .get("file_path")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
-        "Edit" => input
+        "Read" | "Write" | "Edit" => input
             .get("file_path")
             .and_then(|v| v.as_str())
             .unwrap_or("")
@@ -122,7 +117,7 @@ pub fn render_session_markdown(
 
     let total_items = items.len();
     let total_pages = total_items.div_ceil(per_page);
-    let start = (page - 1) * per_page;
+    let start = ((page - 1) * per_page).min(total_items);
     let end = (start + per_page).min(total_items);
     let page_items = &items[start..end];
 

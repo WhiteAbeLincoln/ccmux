@@ -4,8 +4,9 @@
 mod handlers {
     use dioxus::server::axum::{
         Router,
-        extract::{Path, Query},
+        extract::{Path, Query, Request},
         http::{StatusCode, header},
+        middleware::{self, Next},
         response::{IntoResponse, Response},
         routing::get,
     };
@@ -17,7 +18,7 @@ mod handlers {
     };
     use ccmux_core::display::pipeline::events_to_display_items_with_offsets;
     use ccmux_core::display::{DisplayOpts, decode_cursor};
-    use ccmux_core::events::parse::parse_events;
+    use ccmux_core::events::parse::parse_events_refs;
     use ccmux_core::session::loader;
 
     fn base_path() -> std::path::PathBuf {
@@ -83,33 +84,44 @@ mod handlers {
         markdown_response(render_session_list(&groups))
     }
 
-    async fn session_markdown_handler(
-        Path(id_with_ext): Path<String>,
-        Query(params): Query<HashMap<String, String>>,
-    ) -> Response {
-        // Only handle .md requests; let the Dioxus fallback serve the web UI
-        let Some(session_id) = id_with_ext.strip_suffix(".md") else {
-            return error_response(StatusCode::NOT_FOUND, "Not found");
+    fn parse_query(query: &str) -> HashMap<String, String> {
+        query
+            .split('&')
+            .filter(|s| !s.is_empty())
+            .filter_map(|pair| pair.split_once('='))
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect()
+    }
+
+    const MAX_PER_PAGE: usize = 500;
+
+    async fn session_markdown_handler(session_id: &str, query: &str) -> Response {
+        let params = parse_query(query);
+
+        let page: usize = match params.get("page") {
+            Some(v) => match v.parse() {
+                Ok(n) if n >= 1 => n,
+                _ => {
+                    return error_response(
+                        StatusCode::BAD_REQUEST,
+                        "Invalid parameter: page must be a positive integer",
+                    );
+                }
+            },
+            None => 1,
         };
-
-        let page: usize = params.get("page").and_then(|v| v.parse().ok()).unwrap_or(1);
-        let per_page: usize = params
-            .get("per_page")
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(50);
-
-        if page == 0 {
-            return error_response(
-                StatusCode::BAD_REQUEST,
-                "Invalid parameter: page must be >= 1",
-            );
-        }
-        if per_page == 0 {
-            return error_response(
-                StatusCode::BAD_REQUEST,
-                "Invalid parameter: per_page must be >= 1",
-            );
-        }
+        let per_page: usize = match params.get("per_page") {
+            Some(v) => match v.parse::<usize>() {
+                Ok(n) if n >= 1 => n.min(MAX_PER_PAGE),
+                _ => {
+                    return error_response(
+                        StatusCode::BAD_REQUEST,
+                        "Invalid parameter: per_page must be a positive integer",
+                    );
+                }
+            },
+            None => 50,
+        };
 
         let base = base_path();
         let sessions = match loader::discover_sessions(&base) {
@@ -142,9 +154,8 @@ mod handlers {
             }
         };
 
-        let raw_values: Vec<serde_json::Value> =
-            raw_with_offsets.iter().map(|(_, v)| v.clone()).collect();
-        let events = parse_events(&raw_values);
+        let raw_values: Vec<&serde_json::Value> = raw_with_offsets.iter().map(|(_, v)| v).collect();
+        let events = parse_events_refs(&raw_values);
         let opts = DisplayOpts::markdown();
         let items = events_to_display_items_with_offsets(&events, &raw_with_offsets, &opts);
 
@@ -244,17 +255,43 @@ mod handlers {
         markdown_response(render_event_detail(&raw, show_metadata, &id))
     }
 
+    /// Middleware that intercepts `/session/{id}.md` requests without
+    /// registering a greedy route that would shadow Dioxus's `/session/:id`.
+    async fn session_md_middleware(req: Request, next: Next) -> Response {
+        let path = req.uri().path().to_string();
+        if let Some(rest) = path.strip_prefix("/session/")
+            && let Some(session_id) = rest.strip_suffix(".md")
+            && !session_id.contains('/')
+            && !session_id.is_empty()
+        {
+            let query = req.uri().query().unwrap_or("");
+            return session_markdown_handler(session_id, query).await;
+        }
+        next.run(req).await
+    }
+
     /// Build the Axum router for markdown API endpoints.
-    pub fn build_api_router() -> Router {
+    ///
+    /// The session markdown endpoint is handled via middleware (applied in
+    /// `build_combined_router`) rather than a route, to avoid shadowing the
+    /// Dioxus SSR route at `/session/:id`.
+    fn build_api_router() -> Router {
         Router::new()
             .route("/sessions.md", get(session_list_handler))
-            .route("/session/{id_with_ext}", get(session_markdown_handler))
             .route(
                 "/session/{id}/event/{cursor_with_ext}",
                 get(event_detail_handler),
             )
     }
+
+    /// Merge API routes with the Dioxus router and apply session-md middleware
+    /// to the combined router so it intercepts `/session/{id}.md` before Dioxus.
+    pub fn build_combined_router(dioxus_router: Router) -> Router {
+        build_api_router()
+            .merge(dioxus_router)
+            .layer(middleware::from_fn(session_md_middleware))
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub use handlers::build_api_router;
+pub use handlers::build_combined_router;

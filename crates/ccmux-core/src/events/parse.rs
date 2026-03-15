@@ -39,6 +39,11 @@ pub fn parse_events(raw_events: &[Value]) -> Vec<Event> {
     raw_events.iter().map(parse_event).collect()
 }
 
+/// Like `parse_events` but accepts a slice of references (avoids cloning).
+pub fn parse_events_refs(raw_events: &[&Value]) -> Vec<Event> {
+    raw_events.iter().copied().map(parse_event).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

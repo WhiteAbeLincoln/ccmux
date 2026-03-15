@@ -12,9 +12,8 @@ fn main() {
     #[cfg(not(target_arch = "wasm32"))]
     {
         dioxus::server::serve(|| async {
-            let api_routes = api::build_api_router();
             let dioxus_router = dioxus::server::router(App);
-            Ok(api_routes.merge(dioxus_router))
+            Ok(api::build_combined_router(dioxus_router))
         });
     }
 
