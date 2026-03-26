@@ -5,6 +5,7 @@ pub mod query;
 use std::path::Path;
 use std::time::Duration;
 
+use ccmux_core::session::SessionInfo;
 use rusqlite::Connection;
 use serde::Serialize;
 
@@ -65,5 +66,13 @@ impl SearchIndex {
 
     pub fn conn(&self) -> &Connection {
         &self.conn
+    }
+
+    pub fn index_session(&self, info: &SessionInfo) -> Result<(), Box<dyn std::error::Error>> {
+        indexer::index_session(&self.conn, info)
+    }
+
+    pub fn index_all(&self, base_path: &Path) -> Result<IndexStats, Box<dyn std::error::Error>> {
+        indexer::index_all(&self.conn, base_path)
     }
 }
