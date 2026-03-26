@@ -231,3 +231,82 @@ fn test_index_session_is_incremental() {
 
     assert_eq!(count2, count1 + 1);
 }
+
+#[test]
+fn test_index_session_extracts_file_paths() {
+    let dir = TempDir::new().unwrap();
+    let db_path = dir.path().join("test.db");
+    let index = SearchIndex::open(&db_path).unwrap();
+
+    let session_dir = TempDir::new().unwrap();
+    let session_id = "test-session-files";
+    let jsonl_path = session_dir.path().join(format!("{session_id}.jsonl"));
+
+    let events = vec![
+        serde_json::json!({
+            "type": "user",
+            "message": {"role": "user", "content": "Fix the config"},
+            "uuid": "u1",
+            "timestamp": "2026-03-20T10:00:00Z",
+            "userType": "external",
+            "cwd": "/Users/test/myproject",
+            "sessionId": session_id,
+            "isSidechain": false,
+            "version": "1"
+        }),
+        serde_json::json!({
+            "type": "file-history-snapshot",
+            "messageId": "a1",
+            "snapshot": {
+                "trackedFileBackups": {
+                    "src/config.rs": {"backupFileName": "backup1", "version": 1, "backupTime": "2026-03-20T10:00:10Z"},
+                    "src/lib.rs": {"backupFileName": "backup2", "version": 1, "backupTime": "2026-03-20T10:00:10Z"}
+                },
+                "messageId": "a1",
+                "timestamp": "2026-03-20T10:00:10Z"
+            },
+            "isSnapshotUpdate": false
+        }),
+    ];
+
+    let mut file = std::fs::File::create(&jsonl_path).unwrap();
+    for event in &events {
+        writeln!(file, "{}", serde_json::to_string(event).unwrap()).unwrap();
+    }
+
+    let info = SessionInfo {
+        id: session_id.to_string(),
+        project: "-Users-test-myproject".to_string(),
+        path: jsonl_path,
+        slug: None,
+        created_at: Some(Utc::now()),
+        updated_at: Some(Utc::now()),
+        message_count: events.len(),
+        first_message: Some("Fix the config".to_string()),
+        project_path: Some("/Users/test/myproject".to_string()),
+        is_sidechain: false,
+        parent_session_id: None,
+        agent_id: None,
+    };
+
+    index.index_session(&info).unwrap();
+
+    let count: i64 = index
+        .conn()
+        .query_row("SELECT COUNT(*) FROM session_files", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(count, 2);
+
+    // Verify specific file paths
+    let paths: Vec<String> = {
+        let mut stmt = index
+            .conn()
+            .prepare("SELECT file_path FROM session_files ORDER BY file_path")
+            .unwrap();
+        stmt.query_map([], |row| row.get(0))
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect()
+    };
+    assert_eq!(paths, vec!["src/config.rs", "src/lib.rs"]);
+}
