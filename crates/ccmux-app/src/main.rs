@@ -110,7 +110,7 @@ fn run_search(
     };
 
     if files {
-        match index.search_files(&query) {
+        match index.search_files(&query, limit) {
             Ok(results) => {
                 if json {
                     println!("{}", serde_json::to_string_pretty(&results).unwrap());

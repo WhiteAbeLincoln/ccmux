@@ -115,18 +115,24 @@ pub fn search(
 pub fn search_files(
     conn: &Connection,
     pattern: &str,
+    limit: usize,
 ) -> Result<Vec<FileMatch>, Box<dyn std::error::Error>> {
-    let like_pattern = format!("%{pattern}%");
+    let escaped = pattern
+        .replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_");
+    let like_pattern = format!("%{escaped}%");
 
     let mut stmt = conn.prepare(
         "SELECT session_id, file_path, message_id
          FROM session_files
-         WHERE file_path LIKE ?1
-         ORDER BY file_path",
+         WHERE file_path LIKE ?1 ESCAPE '\\'
+         ORDER BY file_path
+         LIMIT ?2",
     )?;
 
     let results = stmt
-        .query_map([&like_pattern], |row| {
+        .query_map(rusqlite::params![&like_pattern, limit as i64], |row| {
             Ok(FileMatch {
                 session_id: row.get(0)?,
                 file_path: row.get(1)?,

@@ -444,14 +444,14 @@ fn test_search_files() {
     };
     index.index_session(&info).unwrap();
 
-    let results = index.search_files("config").unwrap();
+    let results = index.search_files("config", 100).unwrap();
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].file_path, "src/config.rs");
 
-    let results = index.search_files("auth").unwrap();
+    let results = index.search_files("auth", 100).unwrap();
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].file_path, "src/auth.rs");
 
-    let results = index.search_files("nonexistent").unwrap();
+    let results = index.search_files("nonexistent", 100).unwrap();
     assert!(results.is_empty());
 }

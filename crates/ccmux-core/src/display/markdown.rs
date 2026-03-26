@@ -215,7 +215,11 @@ pub fn render_search_results(
 
     for group in groups {
         let label = group.slug.as_deref().unwrap_or(&group.session_id);
-        let date = group.created_at.as_deref().unwrap_or("");
+        let date = group
+            .created_at
+            .as_deref()
+            .map(|d| &d[..d.len().min(10)])
+            .unwrap_or("");
         if date.is_empty() {
             out.push_str(&format!("\n## {label}\n"));
         } else {

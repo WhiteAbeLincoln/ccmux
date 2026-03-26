@@ -87,7 +87,8 @@ impl SearchIndex {
     pub fn search_files(
         &self,
         pattern: &str,
+        limit: usize,
     ) -> Result<Vec<FileMatch>, Box<dyn std::error::Error>> {
-        query::search_files(&self.conn, pattern)
+        query::search_files(&self.conn, pattern, limit)
     }
 }
