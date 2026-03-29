@@ -1,64 +1,54 @@
-# unnamed claude code log utility
+# Cairn 🪨 🥾 🌲
 
-A session inspector and explorer for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Browse your session logs with a structured, interactive web UI that makes it easy to understand what happened during a coding session.
+> Currently Cairn is being developed for my personal use, and may not be the
+> ideal interface for everyone. Feel free to use it if you want, but I provide no
+> guarantees on stability or support at the moment. The main branch may often be
+> in a broken state and I won't distribute binaries.
+
+An all-in-one interface for managing your AI coding sessions with a focus on mobile accessibility.
+
+If you've ever been frustrated with the experience using
+Claude Code's [remote-control feature](https://code.claude.com/docs/en/remote-control)
+through the official app, and wanted something which gives more visibility into what changes
+have been made to your codebase and more insight into the agent's thinking and actions,
+then Cairn is for you.
+
+## Supported Agents
+
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
+- _More to come!_
 
 ## Features
 
-- **Session browser** — sessions grouped by project, sorted by recency, with message counts
-- **Structured message rendering** — user messages, assistant responses, questions, plans, and system events each get their own visual treatment
-- **Syntax-highlighted bash** — shell commands rendered with full syntax highlighting, collapsible output, and error badges
-- **Image preview** — Read tool calls that return screenshots or images render inline instead of showing raw base64
-- **Collapsible tool calls** — thinking traces, file reads, edits, searches, and other tool calls collapse into compact summaries with token counts
-- **Subagent navigation** — agent tool calls link to their subagent sessions; subagent views show prompt and output summaries
-- **Token usage** — every message and tool call shows its token cost
-- **Raw log access** — every block links to its raw JSONL entry for debugging
+> This is a list of planned features, not all are implemented yet
 
-## Screenshots
+- [ ] **Spawn Coding Sessions** - Start new sessions and view existing ones from your phone or desktop,
+  without needing to ssh into your machine and spawn a session in Tmux
+- [ ] **Sandbox Sessions** - Prevent modification to files outside your project directory.
+- [ ] **Voice Control** - Talk to your agent and control it with voice commands
+  _Sandboxing is very basic at the moment and won't prevent secret exfiltration or malicious commands, but it will stop accidental `rm -rf /`-style disasters_
+- [ ] **Reproducible Agent Environments** - Built-in support for managing developer and agent environments with Nix.
+  Define dev shells for your projects and spawn sessions with the correct environment automatically
+- [ ] **Git Integration** - View git logs and diffs through the web interface with progressive levels of detail.
+  Powered by [sem](https://github.com/ataraxy-labs/sem) and [difftastic](https://github.com/wilfred/difftastic)
+- [ ] **Remote File Browser** - Browse your project files and view file contents in a convenient interface. Powered by [monaco-editor](https://github.com/microsoft/monaco-editor)
+- [ ] **Remote Terminal** - Drop into a terminal session for more control. Powered by [ghostty-web](https://github.com/coder/ghostty-web)
+- [ ] **Rich Message Rendering** — The web UI renders agent and user messages with markdown and syntax highlighting with custom widgets for each tool call
+- [ ] **Log Browsing** — View history logs in a convenient interface instead of raw JSONL
+- [ ] **Enhanced Visibility** - View subagent sessions and thinking messages
+- [ ] **Markdown Log Rendering** - Export session history as markdown, or view markdown-rendered history in your terminal through the CLI
+- [ ] **Search History** - Semantic search through your session history. CLI integration so agents can query past sessions for relevant information
+- [X] **Local First** - Cairn is a local application that runs on your machine and doesn't rely on any cloud services.
+  Your data is stored locally and never leaves your machine (except for LLM API calls depending on your choice of agent).
 
-### Session List
-<img alt="Session list grouped by project" src="./_assets/session-list.png" width="700" />
+## FAQ
 
-### Session View
-<img alt="Session view with bash blocks and tool calls" src="./_assets/session-view.png" width="700" />
+### Why the name Cairn?
 
-### Bash Tool Blocks
-<img alt="Bash blocks with syntax highlighting and error badges" src="./_assets/bash-blocks.png" width="700" />
-
-### Read Tool Image Preview
-<img alt="Read tool rendering a screenshot as an inline image" src="./_assets/read-image-preview.png" width="700" />
-
-### Question Block
-<img alt="Question block with question and answer" src="./_assets/question-block.png" width="700" />
-
-### Raw Log Viewer
-<img alt="Raw log viewer showing JSONL entries" src="./_assets/raw-logs.png" width="700" />
-
-## Architecture
-
-### Server
-
-Rust application serving a GraphQL API and the SPA web interface. Watches `.jsonl` log files for changes and updates the API accordingly.
-
-### Web Client
-
-Single Page Application built with TypeScript and SolidJS. Uses Shiki for bash syntax highlighting. Built with Vite; uses Bun for development.
-
-### Nix
-
-A nix flake provides a dev shell and build outputs for both the server and web client.
-
-## Development
-
-```
-cargo run          # backend on :3001
-cd web && bun dev  # frontend on :5173
-```
-
-## Future
-
-- Export sessions as markdown with configurable detail level
-- Edit tool calls rendered as diffs
-- Session search and filtering
-- Remote session control with terminal access
-- Voice interface
-- iOS client
+- I like hiking
+- Naming things is really hard
+- Originally was ccmux but that was derivative of [cmux](https://cmux.com) and too tied to claude code, and then I
+  thought of Rica (Remote Interface for Coding Agents), but that has some unfortunate connotations in Spanish.
+- Cairns are piles of rocks that hikers build to mark trails and guide others, which is a nice metaphor for what
+  this project aims to do: provide a guiding interface for navigating the sometimes rocky terrain of AI coding sessions.
+  That's still a bit of a stretch :)
