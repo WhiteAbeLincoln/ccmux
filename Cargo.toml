@@ -1,10 +1,12 @@
 [workspace]
-members = ["crates/ccmux-core", "crates/ccmux-app", "crates/ccmux-index"]
-resolver = "2"
+members = ["crates/*"]
+resolver = "3"
+package.version = "0.1.0"
+package.edition = "2024"
+package.rust-version = "1.93.0"
 exclude = [".worktrees"]
 
-[workspace.package]
-version = "0.1.0"
-
-[workspace.metadata.crane]
-name = "ccmux"
+[workspace.dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = { version = "1.0.149", features = ["raw_value"] }
+chrono = "0.4.44"

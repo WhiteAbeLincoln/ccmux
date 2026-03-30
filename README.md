@@ -51,4 +51,5 @@ then Cairn is for you.
   thought of Rica (Remote Interface for Coding Agents), but that has some unfortunate connotations in Spanish.
 - Cairns are piles of rocks that hikers build to mark trails and guide others, which is a nice metaphor for what
   this project aims to do: provide a guiding interface for navigating the sometimes rocky terrain of AI coding sessions.
-  That's still a bit of a stretch :)
+  That's still a bit of a stretch
+- My ideal goal is to let me go hiking during the day and still get work done on the trail ;)
